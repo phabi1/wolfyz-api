@@ -55,4 +55,11 @@ class SubscriptionController extends AbstractCampaignController
         unlink($log['file_url']); // Clean up the temporary file
         exit;
     }
+
+    protected function buildSearchFilters($search, &$filters)
+    {
+        if ($search) {
+            $filters['member.lastname'] = ['like' => '%' . $search . '%'];
+        }
+    }
 }

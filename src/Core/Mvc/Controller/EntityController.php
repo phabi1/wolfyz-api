@@ -19,9 +19,24 @@ class EntityController extends ApiController
     {
         $filters = $this->buildFilters($request);
 
+        if ($request->query->has('search')) {
+            $search = $request->query->get('search');
+            $this->buildSearchFilters($search, $filters);
+        }
 
-        $sort = $request->query->get('sort');
-        $order = $request->query->get('order') === 'desc' ? 'desc' : 'asc';
+        $sortQuery = $request->query->get('sort');
+
+        if ($sortQuery) {
+            $sort = array_map(function ($part) {
+                $parts = explode('|', $part);
+                $s = $parts[0];
+                $o = $parts[1] ?? 'asc';
+                return [$s, $o];
+            }, explode(',', $sortQuery));
+        } else {
+            $sort = [];
+        }
+
         $fields = $this->extractFieldsFromRequest($request);
 
         $entityService = $this->getEntityService();
@@ -34,7 +49,7 @@ class EntityController extends ApiController
             $size = null;
         }
 
-        $entities = $entityService->items($filters, $page, $size, $sort, $order, $fields);
+        $entities = $entityService->items($filters, $page, $size, $sort, $fields);
 
         $total = $entityService->count($filters);
 
@@ -175,6 +190,10 @@ class EntityController extends ApiController
             }
         }
         return $filters;
+    }
+
+    protected function buildSearchFilters($search, &$filters)
+    {
     }
 
     /**

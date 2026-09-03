@@ -48,15 +48,12 @@ class EntityService implements EntityServiceInterface
         return $this->getRepository()->getDefinition(); // Implementation for fetching the entity definition from the repository
     }
 
-    public function items($filters = [], $page = 1, $size = 10, $sort = null, $order = 'asc', array $fields = [])
+    public function items($filters = [], $page = 1, $size = 10, $sort = null, array $fields = [])
     {
         $options = [
             'offset' => ($page - 1) * $size,
             'limit' => $size,
-            'sort' => $sort,
-            'order' => $order
         ];
-
 
         $db = $this->entityManager->getDb();
         $query = $db->createQuery();
@@ -77,6 +74,7 @@ class EntityService implements EntityServiceInterface
             }
         }
 
+        $joins = [];
         if ($this->hasRelations($definition)) {
             foreach ($definition['relations'] as $name => $relation) {
                 $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
@@ -85,24 +83,44 @@ class EntityService implements EntityServiceInterface
                 $match = false;
 
                 foreach ($relationDefinition['fields'] as $fieldName => $fieldDef) {
-                    $filterKey = $name . '.' . $fieldName;
-                    if (isset($filters[$filterKey])) {
-                        $this->applyFilterToSql($query, $fieldName, $filters[$filterKey], $relationAlias);
+                    $key = $name . '.' . $fieldName;
+                    if (isset($filters[$key])) {
+                        $this->applyFilterToSql($query, $fieldName, $filters[$key], $relationAlias);
                         $match = true;
                     }
                 }
 
                 if ($match) {
                     $query->join($relationDefinition['table'], $relationAlias, $alias . '.' . $relation['options']['join_field'] . ' = ' . $relationAlias . '.id');
+                    $joins[] = $name;
+                }
+            }
+        }
+
+        if ($sort) {
+            foreach ($sort as $sortItem) {
+                list($field, $order) = $sortItem;
+                if (strpos($field, '.') !== false) {
+                    list($relationName, $relationField) = explode('.', $field);
+                    if (!isset($this->getDefinition()['relations'][$relationName])) {
+                        continue; // Skip unknown relations
+                    }
+                    $relation = $this->getDefinition()['relations'][$relationName];
+                    $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
+                    $relationAlias = $this->aliasMap->getAlias($relation['target_entity']);
+
+                    if (!in_array($relationName, $joins)) {
+                        $query->join($relationDefinition['table'], $relationAlias, $alias . '.' . $this->getDefinition()['relations'][$relationName]['options']['join_field'] . ' = ' . $relationAlias . '.id');
+                        $joins[] = $relationName;
+                    }
+                    $query->orderBy($relationAlias . '.' . $relationField, $order);
+                } else {
+                    $query->orderBy($alias . '.' . $field, $order);
                 }
             }
         }
 
         $query->select($alias . '.id');
-
-        if ($options['sort']) {
-            $query->orderBy($alias . '.' . $options['sort'], $options['order']);
-        }
 
         if ($options['limit'] !== null && $options['offset'] !== null) {
             $query->range($options['limit'], $options['offset']);
@@ -169,7 +187,7 @@ class EntityService implements EntityServiceInterface
 
         $rootQuery = $db->createQuery()->from($definition['table'], $alias);
         $rootQuery->where($db->expr()->in($alias . '.id', $query));
-        $rootQuery->select('COUNT(*)', 'count');
+        $rootQuery->select('COUNT(*)', 'total');
 
         return (int) $db->value($rootQuery);
     }

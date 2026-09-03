@@ -15,6 +15,7 @@
         "symfony/http-foundation": "^7.4",
         "symfony/routing": "^7.4",
         "symfony/event-dispatcher": "^7.4",
-        "phpmailer/phpmailer": "^7.0.0"
+        "phpmailer/phpmailer": "^7.0.0",
+        "fpdf/fpdf": "^1.90"
     }
 }

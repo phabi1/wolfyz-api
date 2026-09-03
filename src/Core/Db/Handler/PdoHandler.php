@@ -44,7 +44,8 @@ class PdoHandler {
     {
         $this->_lastQuery = $sql;
         $stmt = $this->_pdo->query($sql);
-        return $stmt->fetchColumn()[0] ?? null;
+        $row = $stmt->fetchColumn(0);
+        return $row;
     }
 
     public function execute($sql)
