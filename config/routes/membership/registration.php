@@ -3,7 +3,7 @@
 return [
     'membership-registration-get' => [
         'path' => 'membership/campaigns/{campaign_id}/registration',
-        'methods' => 'GET',
+        'methods' => ['GET'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'registration'],
         'requirements' => [
             'campaign_id' => '\d+'
@@ -11,7 +11,7 @@ return [
     ],
     'membership-registration-calculate-total' => [
         'path' => 'membership/campaigns/{campaign_id}/registration/calculate-total',
-        'methods' => 'POST',
+        'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'calculateTotal'],
         'requirements' => [
             'campaign_id' => '\d+'
@@ -19,7 +19,7 @@ return [
     ],
     'membership-register' => [
         'path' => 'membership/campaigns/{campaign_id}/register',
-        'methods' => 'POST',
+        'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'register'],
         'requirements' => [
             'campaign_id' => '\d+'

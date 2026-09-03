@@ -1,0 +1,1 @@
+<?php echo $this->translate('Your request has been rejected'); ?>

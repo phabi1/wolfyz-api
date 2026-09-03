@@ -5,7 +5,7 @@ namespace App\Membership\UseCase;
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
-use App\Core\Mail\MailService;
+use App\Core\Mail\Mailer;
 
 class UpdateRequestUseCase implements UseCaseInterface
 {
@@ -15,9 +15,9 @@ class UpdateRequestUseCase implements UseCaseInterface
 
     private EntityRepositoryInterface $requestLogRepository;
 
-    private MailService $mailService;
+    private Mailer $mailService;
 
-    public function __construct(EntityManager $entityManager, MailService $mailService)
+    public function __construct(EntityManager $entityManager, Mailer $mailService)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');

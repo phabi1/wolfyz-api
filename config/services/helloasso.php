@@ -36,7 +36,7 @@ return [
     ],
     'wolf-helloasso.webhook.handler.receive_payment' => [
         'class' => \App\HelloAsso\Webhook\Handler\ReceivePaymentHandler::class,
-        'arguments' => ['@use_case_bus'],
+        'arguments' => ['@use-case-bus'],
         'tags' => [
             [
                 'name' => 'wolf-helloasso.webhook_handler',

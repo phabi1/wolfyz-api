@@ -3,35 +3,35 @@
 
 namespace App\Membership\Controller;
 
-use App\Core\Mvc\Controller\AbstractController;
-use WP_REST_Request;
+use App\Core\Mvc\Controller\ApiController;
+use Symfony\Component\HttpFoundation\Request;
 
-class RegistrationController extends AbstractController
+class RegistrationController extends ApiController
 {
-    public function registrationAction(WP_REST_Request $request)
+    public function registrationAction(Request $request)
     {
+        $campaignId = $request->attributes->get('campaign_id');
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-
-        $res = $useCaseBus->execute('wolf-memberships.get_registration_for_campaign', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
-            'token' => $request->get_param('token')
+        $res = $this->useCaseBus('wolf-memberships.get_registration_for_campaign', [
+            'campaign_id' => $campaignId,
+            'request_id' => $request->query->get('request_id'),
+            'token' => $request->query->get('token')
         ]);
 
         return $res;
     }
 
-    public function calculateTotalAction(WP_REST_Request $request)
+    public function calculateTotalAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $payload = $request->get_json_params() ?: [];
+        
+        $campaignId = $request->attributes->get('campaign_id');
+        
+        $payload = $request->getPayload()->all();
 
         $participants = $payload['participants'] ?? [];
-        $campaignId = $request->get_param('campaign_id');
         $discount = $payload['discount'] ?? 0;
 
-        $total = $useCaseBus->execute('wolf-memberships.calculate_registration_total', [
+        $total = $this->useCaseBus('wolf-memberships.calculate_registration_total', [
             'campaign_id' => $campaignId,
             'participants' => $participants,
             'discount_amount' => $discount,
@@ -45,25 +45,16 @@ class RegistrationController extends AbstractController
         ];
     }
 
-    public function registerAction(WP_REST_Request $request)
+    public function registerAction(Request $request)
     {
-        $campaignId = $request->get_param('campaign_id');
-        $payload = $request->get_json_params() ?: [];
-
-        if (!$campaignId) {
-            return [
-                'success' => false,
-                'message' => 'Missing campaign_id parameter.'
-            ];
-        }
-
-        $useCaseBus = $this->getService('wolf.use_case_bus');
+        $campaignId = $request->attributes->get('campaign_id');
+        $payload = $request->getPayload()->all();
 
         $requestId = $payload['request_id'] ?? null;
         $token = $payload['token'] ?? null;
 
         if ($requestId) {
-            $useCaseBus->execute('wolf-memberships.update_request', [
+            $this->useCaseBus('wolf-memberships.update_request', [
                 'campaign_id' => $campaignId,
                 'request_id' => $requestId,
                 'token' => $token,
@@ -76,7 +67,7 @@ class RegistrationController extends AbstractController
                 'data' => $payload['data'] ?? [],
             ]);
         } else {
-            $useCaseBus->execute('wolf-memberships.register_to_campaign', [
+            $this->useCaseBus('wolf-memberships.register_to_campaign', [
                 'campaign_id' => $campaignId,
                 'contact' => [
                     'firstname' => $payload['data']['contact']['firstname'] ?? null,

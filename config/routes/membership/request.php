@@ -3,7 +3,7 @@
 return array_merge(
     \App\Core\Rest\Routes::create(
         'membership-request',
-        '/membership/campaigns/{campaign_id}/members',
+        '/membership/campaigns/{campaign_id}/requests',
         \App\Membership\Controller\RequestController::class
     ),
     [

@@ -31,124 +31,124 @@
     ],
     'wolf-events.event.entity.service' => [
         'class' => \App\Event\Entity\Service\EventEntityService::class,
-        'arguments' => ['@use_case_bus', '@entity.manager']
+        'arguments' => ['@use-case-bus', '@entity.manager']
     ],
     'wolf-events.participant.entity.service' => [
         'class' => \App\Event\Entity\Service\ParticipantEntityService::class,
-        'arguments' => ['@use_case_bus', '@entity.manager']
+        'arguments' => ['@use-case-bus', '@entity.manager']
     ],
     'wolf-events.token.service' => [
         'class' => \App\Event\Token\TokenService::class,
     ],
-    'wolf-events.use_case.get_event' => [
+    'wolf-events.use-case.get_event' => [
         'class' => \App\Event\UseCase\GetEventUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.get_event']
+            ['name' => 'use-case', 'value' => 'wolf-events.get_event']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.create_event' => [
+    'wolf-events.use-case.create_event' => [
         'class' => \App\Event\UseCase\CreateEventUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.create_event']
+            ['name' => 'use-case', 'value' => 'wolf-events.create_event']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.update_event' => [
+    'wolf-events.use-case.update_event' => [
         'class' => \App\Event\UseCase\UpdateEventUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.update_event']
+            ['name' => 'use-case', 'value' => 'wolf-events.update_event']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.create_session_for_event' => [
+    'wolf-events.use-case.create_session_for_event' => [
         'class' => \App\Event\UseCase\CreateSessionForEventUseCase::class,
         'arguments' => [
             '@entity.manager'
         ],
         'tags' => [
             [
-                'name' => 'use_case',
+                'name' => 'use-case',
                 'value' => 'wolf-events.create_session_for_event'
             ]
         ]
     ],
-    'wolf-events.use_case.create_ticket_for_event' => [
+    'wolf-events.use-case.create_ticket_for_event' => [
         'class' => \App\Event\UseCase\CreateTicketForEventUseCase::class,
         'arguments' => [
             '@entity.manager'
         ],
         'tags' => [
             [
-                'name' => 'use_case',
+                'name' => 'use-case',
                 'value' => 'wolf-events.create_ticket_for_event'
             ]
         ]
     ],
-    'wolf-events.use_case.register_to_event' => [
+    'wolf-events.use-case.register_to_event' => [
         'class' => \App\Event\UseCase\RegisterToEventUseCase::class,
-        'arguments' => ['@entity.manager', '@use_case_bus'],
+        'arguments' => ['@entity.manager', '@use-case-bus'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.register_to_event']
+            ['name' => 'use-case', 'value' => 'wolf-events.register_to_event']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.paid_checkout' => [
+    'wolf-events.use-case.paid_checkout' => [
         'class' => \App\Event\UseCase\PaidCheckoutUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.paid_checkout']
+            ['name' => 'use-case', 'value' => 'wolf-events.paid_checkout']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.get_checkout_result' => [
+    'wolf-events.use-case.get_checkout_result' => [
         'class' => \App\Event\UseCase\GetCheckoutResultUseCase::class,
         'arguments' => ['@entity.manager', '@wolf-events.token.service'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.get_checkout_result']
+            ['name' => 'use-case', 'value' => 'wolf-events.get_checkout_result']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.print_participants' => [
+    'wolf-events.use-case.print_participants' => [
         'class' => \App\Event\UseCase\PrintParticipantsUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.print_participants']
+            ['name' => 'use-case', 'value' => 'wolf-events.print_participants']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.create_participant' => [
+    'wolf-events.use-case.create_participant' => [
         'class' => \App\Event\UseCase\CreateParticipantUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.create_participant']
+            ['name' => 'use-case', 'value' => 'wolf-events.create_participant']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.update_participant' => [
+    'wolf-events.use-case.update_participant' => [
         'class' => \App\Event\UseCase\UpdateParticipantUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.update_participant']
+            ['name' => 'use-case', 'value' => 'wolf-events.update_participant']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.delete_participant' => [
+    'wolf-events.use-case.delete_participant' => [
         'class' => \App\Event\UseCase\DeleteParticipantUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.delete_participant']
+            ['name' => 'use-case', 'value' => 'wolf-events.delete_participant']
         ],
         'shared' => false
     ],
-    'wolf-events.use_case.get_amount_for_event' => [
+    'wolf-events.use-case.get_amount_for_event' => [
         'class' => \App\Event\UseCase\GetAmountForEventUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
-            ['name' => 'use_case', 'value' => 'wolf-events.get_amount_for_event']
+            ['name' => 'use-case', 'value' => 'wolf-events.get_amount_for_event']
         ],
         'shared' => false
     ]

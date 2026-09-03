@@ -2,9 +2,10 @@
 
 namespace App\Membership\UseCase;
 
+use App\Core\Config\Parameters;
 use App\Core\Entity\EntityManager;
 use App\Core\Entity\EntityRepositoryInterface;
-use App\Core\Mail\MailService;
+use App\Core\Mail\Mailer;
 use App\Core\UseCase\UseCaseInterface;
 
 class ResendPaymentUseCase implements UseCaseInterface
@@ -13,14 +14,16 @@ class ResendPaymentUseCase implements UseCaseInterface
 
     private EntityRepositoryInterface $requestEntityRepository;
     private EntityRepositoryInterface $requestLogEntityRepository;
-    private MailService $mailService;
+    private Mailer $mailService;
+    private string $paymentPageUrl;
 
-    public function __construct(EntityManager $entityManager, MailService $mailService)
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters)
     {
         $this->campaignEntityRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestEntityRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogEntityRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
+        $this->paymentPageUrl = $parameters->get('site_membership_request_payment_url');
     }
 
     public function execute(array $params = [])
@@ -73,10 +76,6 @@ class ResendPaymentUseCase implements UseCaseInterface
 
     private function buildPaymentUrl($campaignId, $request)
     {
-        $pageId = get_option('wolf_membership_pay_page', 'https://yourwebsite.com/payment');
-        if (!$pageId) {
-            throw new \Exception('Payment page is not configured.');
-        }
-        return get_permalink($pageId) . "?campaign_id={$campaignId}&request_id={$request->id}&token={$request->token}";
+        return $this->paymentPageUrl . "?campaign_id={$campaignId}&request_id={$request->id}&token={$request->token}";
     }
 }

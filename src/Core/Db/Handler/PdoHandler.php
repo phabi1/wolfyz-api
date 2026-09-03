@@ -18,7 +18,12 @@ class PdoHandler {
     }
 
     public function escape($value) {
-        return '"' . $value . '"';
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        } else if (is_bool($value)) {
+            return $value ? 1 : 0;
+        }
+        return '"' . addcslashes($value, "\0\n\r\\\"'\x1a") . '"';
     }
 
     public function fetchAll($sql)

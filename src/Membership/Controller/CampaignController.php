@@ -12,7 +12,7 @@ class CampaignController extends EntityController
 
     public function updateCampaignSettingsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use_case_bus');
+        $useCaseBus = $this->getService('wolf.use-case-bus');
         $campaignId = $request->attributes->get('campaign_id');
         $settings = $request->getPayload()->all();
 
@@ -26,7 +26,7 @@ class CampaignController extends EntityController
 
     public function currentWheelsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use_case_bus');
+        $useCaseBus = $this->getService('wolf.use-case-bus');
 
         $campaignId = $request->attributes->get('campaign_id');
 
@@ -47,7 +47,7 @@ class CampaignController extends EntityController
 
     public function nextWheelsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use_case_bus');
+        $useCaseBus = $this->getService('wolf.use-case-bus');
 
         $campaignId = $request->attributes->get('campaign_id');
 

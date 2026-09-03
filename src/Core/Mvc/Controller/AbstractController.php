@@ -11,6 +11,16 @@ abstract class AbstractController implements ContainerAwareInterface
 {
     use ContainerAwareTrait;
 
+    private $helpers;
+
+    protected function getHelpers()
+    {
+        if ($this->helpers === null) {
+            $this->helpers = $this->getService('controller.helpers');
+        }
+        return $this->helpers;
+    }
+
     protected function getService($key)
     {
         return $this->container->get($key);
@@ -26,6 +36,16 @@ abstract class AbstractController implements ContainerAwareInterface
         }
     }
 
+    public function __call($method, $args)
+    {
+        $helperName = $this->getService('helper.string')->toKebabCase($method);
+        if ($this->getHelpers()->has($helperName)) {
+            $helper = $this->getHelpers()->get($helperName);
+            return call_user_func_array($helper, $args);
+        }
+        throw new \BadMethodCallException("Helper {$helperName} does not exist in " . get_class($this));
+    }
+
     protected function render($template, $data = [])
     {
         $view = $this->getService('view');
@@ -39,4 +59,5 @@ abstract class AbstractController implements ContainerAwareInterface
         $url = $router->generate($route, $parameters);
         return new RedirectResponse($url);
     }
+
 }

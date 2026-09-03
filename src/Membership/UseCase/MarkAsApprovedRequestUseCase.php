@@ -5,7 +5,9 @@ namespace App\Membership\UseCase;
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
-use App\Core\Mail\MailService;
+use App\Core\Mail\Mailer;
+use App\Core\Config\Parameters;
+use App\Core\Events\EventDispatcher;
 
 class MarkAsApprovedRequestUseCase implements UseCaseInterface
 {
@@ -16,13 +18,17 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
     private EntityRepositoryInterface $requestLogRepository;
 
     private $mailService;
+    private $paymentPageUrl;
+    private $eventDispatcher;
 
-    public function __construct(EntityManager $entityManager, MailService $mailService)
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
+        $this->paymentPageUrl = $parameters->get('site_membership_request_payment_url');
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function execute(array $params = []): array
@@ -68,7 +74,7 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
         try {
             $this->mailService->sendMail(
                 $updatedRequest->email,
-                'wolf-membership:request-approved',
+                'membership/request-approved',
                 [
                     'firstname' => $updatedRequest->firstname,
                     'lastname' => $updatedRequest->lastname,
@@ -82,17 +88,16 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
             error_log('Failed to send approval email: ' . $e->getMessage());
         }
 
-        do_action('wolf_memberships_request_approved', ['request' => $updatedRequest]);
+        $this->eventDispatcher->dispatch('wolf_memberships_request_approved', ['request' => $updatedRequest]);
 
         return [];
     }
 
     private function buildPaymentUrl($campaignId, $request)
     {
-        $pageId = get_option('wolf_membership_pay_page', 'https://yourwebsite.com/payment');
-        if (!$pageId) {
+        if (!$this->paymentPageUrl) {
             throw new \Exception('Payment page is not configured.');
         }
-        return get_permalink($pageId) . "?campaign_id={$campaignId}&request_id={$request->id}&token={$request->token}";
+        return $this->paymentPageUrl . "?campaign_id={$campaignId}&request_id={$request->id}&token={$request->token}";
     }
 }

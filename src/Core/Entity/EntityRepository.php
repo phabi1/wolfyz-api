@@ -106,20 +106,20 @@ class EntityRepository implements EntityRepositoryInterface
             $data['updated_at'] = date('Y-m-d H:i:s');
         }
 
-        $this->db->update($this->definition['table'], $data, ['id' => $id]); // Implementation for updating an existing item identified by ID with the provided data
+        $this->db->update($this->definition['table'], $data, $this->db->expr()->eq('id', $id)); // Implementation for updating an existing item identified by ID with the provided data
         return $this->findById($id);
     }
 
     public function delete($id)
     {
-        $this->db->delete($this->definition['table'], ['id' => $id]); // Implementation for deleting an item identified by ID
+        $this->db->delete($this->definition['table'], $this->db->expr()->eq('id', $id)); // Implementation for deleting an item identified by ID
     }
 
     public function deleteBy($filters = [])
     {
         $result = $this->find($filters);
         foreach ($result as $item) {
-            $this->db->delete($this->definition['table'], $item->id);
+            $this->db->delete($this->definition['table'], $this->db->expr()->eq('id', $item->id));
         }
     }
 

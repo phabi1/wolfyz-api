@@ -3,31 +3,26 @@
 namespace App\Membership\Controller;
 
 use App\Core\UseCase\UseCaseBus;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class SubscriptionController extends AbstractCampaignController
 {
-    private $useCaseBus;
 
     protected $entityName = 'wolf-memberships.subscription';
-
-    public function __construct(UseCaseBus $useCaseBus)
-    {
-        $this->useCaseBus = $useCaseBus;
-    }
 
     public function importAction($request)
     {
         $campaignId = $request->get_param('campaign_id');
         if (!$campaignId) {
-            return new \WP_Error('campaign_id_required', 'Campaign ID parameter is required', ['status' => 400]);
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
         $files = $request->get_file_params();
 
         if (empty($files['file'])) {
-            return new \WP_Error('file_not_provided', 'No file provided for import', ['status' => 400]);
+            return new JsonResponse(['error' => 'file_not_provided', 'message' => 'No file provided for import'], 400);
         }
 
-        $log = $this->useCaseBus->execute('wolf-memberships.import_subscriptions', [
+        $log = $this->useCaseBus('wolf-memberships.import_subscriptions', [
             'campaign_id' => $campaignId,
             'file' => $files['file']['tmp_name']
         ]);
@@ -42,15 +37,15 @@ class SubscriptionController extends AbstractCampaignController
     {
         $campaignId = $request->get_param('campaign_id');
         if (!$campaignId) {
-            return new \WP_Error('campaign_id_required', 'Campaign ID parameter is required', ['status' => 400]);
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
 
-        $log = $this->useCaseBus->execute('wolf-memberships.export_subscriptions', [
+        $log = $this->useCaseBus('wolf-memberships.export_subscriptions', [
             'campaign_id' => $campaignId
         ]);
 
         if (isset($log['error'])) {
-            return new \WP_Error('export_failed', $log['error'], ['status' => 500]);
+            return new JsonResponse(['error' => 'export_failed', 'message' => $log['error']], 500);
         }
 
         // Serve the file for download

@@ -9,7 +9,7 @@ class RegistrationController extends AbstractController
     public function infoAction($request)
     {
         $eventId = (int) $request->get_param('event_id');
-        $useCaseBus = $this->getService('use_case_bus');
+        $useCaseBus = $this->getService('use-case-bus');
 
         try {
             $event = $useCaseBus->execute('wolf-events.get_event', ['id' => $eventId]);
@@ -62,7 +62,7 @@ class RegistrationController extends AbstractController
             }
         }
 
-        $useCaseBus = $this->getService('use_case_bus');
+        $useCaseBus = $this->getService('use-case-bus');
 
         try {
             $result = $useCaseBus->execute('wolf-events.register_to_event', [

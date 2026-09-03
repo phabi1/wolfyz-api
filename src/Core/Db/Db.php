@@ -4,6 +4,7 @@ namespace App\Core\Db;
 
 use App\Core\Db\Exception\DuplicateEntryException;
 use App\Core\Db\Exception\DbException;
+use App\Core\Db\Expr\ExprInterface;
 
 class Db
 {
@@ -43,8 +44,9 @@ class Db
         return $value;
     }
 
-    public function quote(string $field): string {
-        return '`'.$field.'`';
+    public function quote(string $field): string
+    {
+        return '`' . $field . '`';
     }
 
     public function beginTransaction()
@@ -91,7 +93,7 @@ class Db
 
     public function insert($table, $data)
     {
-        $keys = array_map(function($field) {
+        $keys = array_map(function ($field) {
             return $this->quote($field);
         }, array_keys($data));
 
@@ -99,8 +101,8 @@ class Db
             return $this->escape($value);
         }, array_values($data));
 
-        $sql = 'INSERT INTO ' . $this->quote($this->_handler->prefix . $table). '('.implode(',', $keys).') VALUES ('.implode(',', $values).')';
-        
+        $sql = 'INSERT INTO ' . $this->quote($this->_handler->prefix . $table) . '(' . implode(',', $keys) . ') VALUES (' . implode(',', $values) . ')';
+
         $res = $this->_handler->execute($sql);
         if ($res === false) {
             $this->handleError();
@@ -108,18 +110,51 @@ class Db
         return $this->_handler->insertId();
     }
 
-    public function update($table, $data, array $where)
+    public function update($table, $data, string|ExprInterface $where)
     {
-        $res = $this->_handler->update($this->_handler->prefix . $table, $data, $where);
+        $keys = array_map(function ($field) {
+            return $this->quote($field);
+        }, array_keys($data));
+        $values = array_map(function ($value) {
+            return $this->escape($value);
+        }, array_values($data));
+
+        
+
+        $sql = 'UPDATE ' . $this->quote($this->_handler->prefix . $table) . ' SET ';
+        $sets = [];
+        foreach ($keys as $i => $key) {
+            $sets[] = $key . '=' . $values[$i];
+        }
+        $sql .= implode(',', $sets);
+
+        if ($where) {
+            if ($where instanceof ExprInterface) {
+                $sql .= ' WHERE ' . $where->build();
+            } elseif (is_string($where) && $where !== '') {
+                $sql .= ' WHERE ' . $where;
+            }
+        }
+
+        $res = $this->_handler->execute($sql);
         if ($res === false) {
             $this->handleError();
         }
         return $res;
     }
 
-    public function delete($table, array $where)
+    public function delete($table, string|ExprInterface $where)
     {
-        $res = $this->_handler->delete($this->_handler->prefix . $table, $where);
+        $sql = 'DELETE FROM ' . $this->quote($this->_handler->prefix . $table);
+        if ($where) {
+            if ($where instanceof ExprInterface) {
+                $sql .= ' WHERE ' . $where->build();
+            } elseif (is_string($where) && $where !== '') {
+                $sql .= ' WHERE ' . $where;
+            }
+        }
+
+        $res = $this->_handler->execute($sql);
         if ($res === false) {
             $this->handleError();
         }

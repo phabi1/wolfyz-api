@@ -2,10 +2,12 @@
 
 namespace App\Membership\UseCase;
 
+use App\Core\Config\Parameters;
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
-use App\Core\Mail\MailService;
+use App\Core\Mail\Mailer;
+use App\Core\Events\EventDispatcher;
 
 class MarkAsPaidRequestUseCase implements UseCaseInterface
 {
@@ -16,13 +18,18 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
     private EntityRepositoryInterface $requestLogRepository;
 
     private $mailService;
+    private EventDispatcher $eventDispatcher;
 
-    public function __construct(EntityManager $entityManager, MailService $mailService)
+    private $contactPageUrl;
+
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
+        $this->eventDispatcher = $eventDispatcher;
+        $this->contactPageUrl = $parameters->get('site_contact_url');
     }
 
     public function execute(array $params = []): array
@@ -82,17 +89,16 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
             error_log('Failed to send paid email: ' . $e->getMessage());
         }
 
-        do_action('wolf_memberships_request_paid', ['request' => $updatedRequest]);
+        $this->eventDispatcher->dispatch('wolf_memberships_request_paid', ['request' => $updatedRequest]);
 
         return [];
     }
 
     private function buildContactUrl()
     {
-        $pageId = get_option('wolf_contact_page', 'https://yourwebsite.com/payment');
-        if (!$pageId) {
-            throw new \Exception('Contact page is not configured.');
+        if (!$this->contactPageUrl) {
+            throw new \Exception('Contact page URL is not configured.');
         }
-        return get_permalink($pageId);
+        return $this->contactPageUrl;
     }
 }

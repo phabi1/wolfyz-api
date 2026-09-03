@@ -4,11 +4,8 @@ namespace App;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Matcher\UrlMatcher;
-use Symfony\Component\Routing\RequestContext;
-use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
-use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use App\Core\Di;
 
 class Application
@@ -25,58 +22,54 @@ class Application
 
         $request = Request::createFromGlobals();
 
-        $routes = $this->loadRoutes();
+        $referer = $request->headers->get('Origin');
 
-        $context = new RequestContext();
-        $routeMatcher = new UrlMatcher($routes, $context);
+        if ($request->getMethod() === 'OPTIONS') {
+            $response = new JsonResponse(null, 204);
+            $this->withCors($response, $referer);
+            $response->send();
+            return;
+        }
+
+        $urlMatcher = $this->container->get('router-matcher');
+        $context = $this->container->get('router-context');
 
         $context->fromRequest($request);
 
         try {
-            $routeParameters = $routeMatcher->match($request->getPathInfo());
+            $routeParameters = $urlMatcher->match($request->getPathInfo());
             $request->attributes->add($routeParameters);
+
+            $controller = $routeParameters[0];
+            $action = $routeParameters[1];
+
+            $controllerInstance = new $controller();
+
+            $controllerInstance->setContainer($this->container);
+            $response = $controllerInstance->dispatch($action, $request);
+
+            $this->withCors($response, $referer);
+            // You can add additional logic here, such as checking user permissions with the firewall
         } catch (ResourceNotFoundException $e) {
-            $response = new JsonResponse('Not Found', 404);
-            $response->send();
-            return;
+            $response = new JsonResponse(['message' => 'Not Found'], 404);
+        } catch (MethodNotAllowedException $e) {
+            $response = new JsonResponse(['message' => 'Method Not Allowed'], 405);
         } catch (\Exception $e) {
-            $response = new JsonResponse('An error occurred', 500);
-            $response->send();
-            return;
+            $response = new JsonResponse(['message' => 'An error occurred', 'exception' => $e->getMessage()], 500);
+
         }
 
-        $controller = $routeParameters[0];
-        $action = $routeParameters[1];
-
-        $controllerInstance = new $controller();
-
-        $controllerInstance->setContainer($this->container);
-        $response = $controllerInstance->dispatch($action, $request);
-
-        $response->headers->set('Access-Control-Allow-Origin', 'http://localhost:4200');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+        if (isset($response)) {
+            $this->withCors($response, $referer);
+        }
         $response->send();
     }
 
-    private function loadRoutes()
+    private function withCors($response, $referer)
     {
-        $routes = require APP_DIR . '/config/routes.php';
-        $collection = new RouteCollection();
-        foreach ($routes as $name => $info) {
-            $collection->add($name, new Route(
-                $info['path'],
-                $info['controller'],
-                $info['requirements'] ?? [],
-                $info['options'] ?? [],
-                $info['host'] ?? '',
-                $info['schemes'] ?? [],
-                $info['methods'] ?? [],
-                $info['condition'] ?? ''
-            ));
-        }
-        return $collection;
+        $response->headers->set('Access-Control-Allow-Origin', $referer);
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key');
     }
 
     private function setupDependencyInjection()
@@ -90,7 +83,8 @@ class Application
 
     private function setupConfig()
     {
-        $this->container->get('parameters')->load(CONFIG_DIR . '/parameters.php');
+        $env = APP_ENV;
+        $this->container->get('parameters')->load(CONFIG_DIR . '/parameters.' . $env . '.php');
     }
 
     public static function run()

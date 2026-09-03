@@ -3,53 +3,41 @@
 namespace App\Membership\Controller;
 
 use App\Core\Mvc\Controller\EntityController;
-use App\Core\UseCase\UseCaseBus;
-use App\Membership\Entity\Service\MemberEntityService;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 class MemberController extends EntityController
 {
-    private $useCaseBus;
-
-    protected $entityName = 'wolf-memberships.member';
-
-    public function __construct(UseCaseBus $useCaseBus, MemberEntityService $entityService)
+    public function existsAction(Request $request)
     {
-        $this->entityService = $entityService;
-        $this->entityService->setEntityName($this->entityName);
-
-        $this->useCaseBus = $useCaseBus;
-    }
-
-    public function existsAction($request)
-    {
-        $lastname = $request->get_param('lastname');
+        $lastname = $request->query->get('lastname');
         if (!$lastname) {
-            return new \WP_Error('lastname_required', 'Lastname parameter is required', ['status' => 400]);
+            return new JsonResponse(['error' => 'lastname_required', 'message' => 'Lastname parameter is required'], 400);
         }
 
-        $firstname = $request->get_param('firstname');
+        $firstname = $request->query->get('firstname');
         if (!$firstname) {
-            return new \WP_Error('firstname_required', 'Firstname parameter is required', ['status' => 400]);
+            return new JsonResponse(['error' => 'firstname_required', 'message' => 'Firstname parameter is required'], 400);
         }
 
-        $birthdate = $request->get_param('birthdate');
+        $birthdate = $request->query->get('birthdate');
         if (!$birthdate) {
-            return new \WP_Error('birthdate_required', 'Birthdate parameter is required', ['status' => 400]);
+            return new JsonResponse(['error' => 'birthdate_required', 'message' => 'Birthdate parameter is required'], 400);
         }
 
         // Check if valid format for birthdate
         if (!\DateTime::createFromFormat('Y-m-d', $birthdate)) {
-            return new \WP_Error('invalid_birthdate', 'Birthdate must be in YYYY-MM-DD format', ['status' => 400]);
+            return new JsonResponse(['error' => 'invalid_birthdate', 'message' => 'Birthdate must be in YYYY-MM-DD format'], 400);
         }
 
-        $suggestions = !!$request->get_param('suggestions');
+        $suggestions = !!$request->query->get('suggestions');
 
-        $result = $this->useCaseBus->execute('wolf-memberships.exists_member', [
+        $result = $this->useCaseBus('wolf-memberships.exists_member', [
             'lastname' => $lastname,
             'firstname' => $firstname,
             'birthdate' => $birthdate,
             'suggestions' => $suggestions,
-            'minScore' => $request->get_param('score_min') ?? 0,
+            'minScore' => $request->query->get('score_min') ?? 0,
         ]);
 
         return [
@@ -59,35 +47,14 @@ class MemberController extends EntityController
         ];
     }
 
-    public function hashAction($request)
+    public function importAction(Request $request)
     {
-        global $wpdb;
-        $memberHelper = $this->getService('wolf-memberships.helper.member');
-
-       $members = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}wolf_memberships_member");
-
-        foreach ($members as $member) {
-            $hash = $memberHelper->generateHash($member->firstname, $member->lastname, $member->birthdate);
-            $wpdb->update(
-                "{$wpdb->prefix}wolf_memberships_member",
-                ['hash' => $hash],
-                ['id' => $member->id],
-            );
-        }
-
-        return [
-            'success' => true
-        ];
-    }
-
-    public function importAction($request)
-    {
-        $files = $request->get_file_params();
+        $files = $request->files->all();
         if (empty($files['file'])) {
-            throw new \WP_Error('file_not_provided', 'No file provided for import', ['status' => 400]);
+            return new JsonResponse(['error' => 'file_not_provided', 'message' => 'No file provided for import'], 400);
         }
 
-        $log = $this->useCaseBus->execute('wolf-memberships.import_members', [
+        $log = $this->useCaseBus('wolf-memberships.import_members', [
             'file' => $files['file']['tmp_name']
         ]);
 

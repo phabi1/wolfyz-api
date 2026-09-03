@@ -32,7 +32,7 @@ class ParticipantController extends EntityController
     public function printAction(\WP_REST_Request $request)
     {
         $eventId = (int) $request->get_param('event_id');
-        $res = $this->getService('use_case_bus')->execute('wolf-events.print_participants', ['eventId' => $eventId, 'days' => 5]);
+        $res = $this->getService('use-case-bus')->execute('wolf-events.print_participants', ['eventId' => $eventId, 'days' => 5]);
         header('Content-Type: application/pdf');
         header('Content-Disposition: attachment;filename="' . $res['filename'] . '"');
 

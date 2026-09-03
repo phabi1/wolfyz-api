@@ -29,10 +29,7 @@ class GetHistoryOfRequestUseCase implements UseCaseInterface
             return $item->changed_by;
         }, $results));
 
-        $users = array_reduce(get_users(['include' => $userIds]), function ($carry, $user) {
-            $carry[$user->ID] = $user;
-            return $carry;
-        }, []);
+        $users = $this->getUsers($userIds);
 
         foreach ($results as $item) {
             $user = isset($users[$item->changed_by]) ? $users[$item->changed_by] : null;
@@ -48,5 +45,9 @@ class GetHistoryOfRequestUseCase implements UseCaseInterface
         }
 
         return $results ?: [];
+    }
+
+    protected function getUsers($ids) {
+        return [];
     }
 }

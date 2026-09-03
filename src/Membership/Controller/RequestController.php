@@ -2,27 +2,30 @@
 
 namespace App\Membership\Controller;
 
+use Symfony\Component\HttpFoundation\Request;
+
 class RequestController extends AbstractCampaignController
 {
 
     protected $entityName = 'wolf-memberships.request';
 
-    public function approveAction(\WP_REST_Request $request)
+    public function approveAction(Request $request)
     {
-        if (!$request->get_param('campaign_id') || !$request->get_param('request_id')) {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
             return [
                 'success' => false,
                 'message' => 'Missing campaign_id or request_id parameter.'
             ];
         }
 
-        $user = wp_get_current_user();
+        $identity = $this->identity();
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $useCaseBus->execute('wolf-memberships.approve_request', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
-            'user_id' => $user->ID
+        $this->useCaseBus('wolf-memberships.approve_request', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
+            'user_id' => $identity->getId()
         ]);
 
         return [
@@ -31,23 +34,26 @@ class RequestController extends AbstractCampaignController
         ];
     }
 
-    public function rejectAction(\WP_REST_Request $request)
+    public function rejectAction(Request $request)
     {
-        if (!$request->get_param('campaign_id') || !$request->get_param('request_id')) {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
             return [
                 'success' => false,
                 'message' => 'Missing campaign_id or request_id parameter.'
             ];
         }
 
-        $user = wp_get_current_user();
+        $identity = $this->identity();
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $useCaseBus->execute('wolf-memberships.reject_request', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
-            'user_id' => $user->ID,
-            'reason' => $request->get_param('reason') ?? ''
+        $payload = $request->getPayload()->all();
+
+        $this->useCaseBus('wolf-memberships.reject_request', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
+            'user_id' => $identity->getId(),
+            'reason' => $payload['reason'] ?? ''
         ]);
 
         return [
@@ -56,22 +62,23 @@ class RequestController extends AbstractCampaignController
         ];
     }
 
-    public function cancelAction(\WP_REST_Request $request)
+    public function cancelAction(Request $request)
     {
-        if (!$request->get_param('campaign_id') || !$request->get_param('request_id')) {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
             return [
                 'success' => false,
                 'message' => 'Missing campaign_id or request_id parameter.'
             ];
         }
 
-        $user = wp_get_current_user();
+        $identity = $this->identity();
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $useCaseBus->execute('wolf-memberships.cancel_request', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
-            'user_id' => $user->ID
+        $this->useCaseBus('wolf-memberships.cancel_request', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
+            'user_id' => $identity->getId()
         ]);
 
         return [
@@ -80,22 +87,23 @@ class RequestController extends AbstractCampaignController
         ];
     }
 
-    public function paidAction(\WP_REST_Request $request)
+    public function paidAction(Request $request)
     {
-        if (!$request->get_param('campaign_id') || !$request->get_param('request_id')) {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
             return [
                 'success' => false,
                 'message' => 'Missing campaign_id or request_id parameter.'
             ];
         }
 
-        $user = wp_get_current_user();
+        $identity = $this->identity();
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $useCaseBus->execute('wolf-memberships.paid_request', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
-            'user_id' => $user->ID
+        $this->useCaseBus('wolf-memberships.paid_request', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
+            'user_id' => $identity->getId()
         ]);
 
         return [
@@ -104,9 +112,9 @@ class RequestController extends AbstractCampaignController
         ];
     }
 
-    public function historyAction(\WP_REST_Request $request)
+    public function historyAction(Request $request)
     {
-        $requestId = $request->get_param('request_id');
+        $requestId = $request->attributes->get('request_id');
         if (!$requestId) {
             return [
                 'success' => false,
@@ -114,30 +122,30 @@ class RequestController extends AbstractCampaignController
             ];
         }
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $history = $useCaseBus->execute('wolf-memberships.get_history_of_request', [
+        $history = $this->useCaseBus('wolf-memberships.get_history_of_request', [
             'request_id' => $requestId
         ]);
 
         return [
             'success' => true,
-            'data' => $history
+            'items' => $history
         ];
     }
 
-    public function resendPaymentAction(\WP_REST_Request $request)
+    public function resendPaymentAction(Request $request)
     {
-        if (!$request->get_param('campaign_id') || !$request->get_param('request_id')) {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
             return [
                 'success' => false,
                 'message' => 'Missing campaign_id or request_id parameter.'
             ];
         }
 
-        $useCaseBus = $this->getService('wolf.use_case_bus');
-        $useCaseBus->execute('wolf-memberships.resend_payment', [
-            'campaign_id' => $request->get_param('campaign_id'),
-            'request_id' => $request->get_param('request_id'),
+        $this->useCaseBus('wolf-memberships.resend_payment', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
         ]);
 
         return [

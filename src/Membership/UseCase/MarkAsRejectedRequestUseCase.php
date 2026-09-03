@@ -2,26 +2,37 @@
 
 namespace App\Membership\UseCase;
 
+use App\Core\Config\Parameters;
 use App\Core\Entity\EntityRepositoryInterface;
+use App\Core\Events\EventDispatcher;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
-use App\Core\Mail\MailService;
+use App\Core\Mail\Mailer;
 
 class MarkAsRejectedRequestUseCase implements UseCaseInterface
 {
     private $campaignRepository;
     private $requestRepository;
+    private EventDispatcher $eventDispatcher;
 
     private EntityRepositoryInterface $requestLogRepository;
 
     private $mailService;
 
-    public function __construct(EntityManager $entityManager, MailService $mailService)
-    {
+    private $editUrl;
+
+    public function __construct(
+        EntityManager $entityManager,
+        Mailer $mailService,
+        Parameters $parameters,
+        EventDispatcher $eventDispatcher
+    ) {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
+        $this->editUrl = $parameters->get('site_membership_request_edit_url');
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function execute(array $params = []): array
@@ -69,7 +80,7 @@ class MarkAsRejectedRequestUseCase implements UseCaseInterface
         try {
             $this->mailService->sendMail(
                 $updatedRequest->email,
-                'wolf-memberships:request_rejected',
+                'membership/request-rejected',
                 [
                     'firstname' => $updatedRequest->firstname,
                     'lastname' => $updatedRequest->lastname,
@@ -83,15 +94,13 @@ class MarkAsRejectedRequestUseCase implements UseCaseInterface
             error_log('Failed to send rejection email: ' . $e->getMessage());
         }
 
-        do_action('wolf_memberships_request_rejected', ['request' => $updatedRequest]);
+        $this->eventDispatcher->dispatch('wolf_memberships_request_rejected', ['request' => $updatedRequest]);
 
         return [];
     }
 
     private function buildEditUrl($campaign, $request): string
     {
-        $pageId = get_option('wolf_membership_registration_page');
-
-        return get_permalink($pageId) . "?campaign_id={$campaign->id}&request_id={$request->id}&token={$request->token}";
+        return $this->editUrl . "?campaign_id={$campaign->id}&request_id={$request->id}&token={$request->token}";
     }
 }
