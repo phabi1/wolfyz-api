@@ -19,6 +19,9 @@ class EntityManager {
         $this->db = $db;
     }
 
+    public function getEntityDefinition() {
+        return $this->entityDefinition;
+    }
     public function getDb()
     {
         return $this->db;

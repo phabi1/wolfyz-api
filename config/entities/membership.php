@@ -174,7 +174,8 @@ return [
                     'join_field' => 'subscription_id'
                 ]
             ]
-        ]
+        ],
+        'search' => ['member.lastname', 'member.firstname']
     ],
     'wolf-memberships.contact' => [
         'table' => 'wolf_memberships_contact',

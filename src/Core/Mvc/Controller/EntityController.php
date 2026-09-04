@@ -4,6 +4,7 @@ namespace App\Core\Mvc\Controller;
 
 use Symfony\Component\HttpFoundation\Request;
 use App\Core\Entity\EntityService;
+use App\Core\Entity\EntityServiceInterface;
 
 class EntityController extends ApiController
 {
@@ -18,11 +19,6 @@ class EntityController extends ApiController
     public function itemsAction(Request $request)
     {
         $filters = $this->buildFilters($request);
-
-        if ($request->query->has('search')) {
-            $search = $request->query->get('search');
-            $this->buildSearchFilters($search, $filters);
-        }
 
         $sortQuery = $request->query->get('sort');
 
@@ -49,9 +45,9 @@ class EntityController extends ApiController
             $size = null;
         }
 
-        $entities = $entityService->items($filters, $page, $size, $sort, $fields);
-
-        $total = $entityService->count($filters);
+        $search = $request->query->get('search') ?? '';
+        $entities = $entityService->items($filters, $page, $size, $sort, $fields, $search);
+        $total = $entityService->count($filters, $search);
 
         return [
             'items' => $this->serializeCollection($entities),
@@ -156,7 +152,11 @@ class EntityController extends ApiController
     protected function getEntityService()
     {
         if (!$this->entityService) {
-            $this->entityService = $this->buildEntityService();
+            $entityService = $this->buildEntityService();
+            if ($entityService instanceof EntityServiceInterface === false) {
+                throw new \RuntimeException('EntityService must be implements EntityServiceInterface');
+            }
+            $this->entityService = $entityService;
 
         }
         return $this->entityService;
@@ -206,13 +206,14 @@ class EntityController extends ApiController
     {
         $data = [];
         $definition = $this->getEntityService()->getDefinition();
-        foreach ($definition['fields'] as $name => $field) {
-            if ($name === $this->identifierName) {
+        foreach ($definition->getFields() as $field) {
+            if ($field->getName() === $this->identifierName) {
                 continue; // Skip identifier field
             }
-            if ($field['readonly'] ?? false) {
+            if ($field->isReadonly() ?? false) {
                 continue; // Skip readonly fields
             }
+            $name = $field->getName();
             if (isset($body[$name])) {
                 $data[$name] = $body[$name];
             }
@@ -232,13 +233,14 @@ class EntityController extends ApiController
     {
         $data = [];
         $definition = $this->getEntityService()->getDefinition();
-        foreach ($definition['fields'] as $name => $field) {
+        foreach ($definition->getFields() as $name => $field) {
             if (isset($entity->$name)) {
                 $data[$name] = $entity->$name;
             }
         }
-        if (isset($definition['relations'])) {
-            foreach ($definition['relations'] as $name => $relation) {
+        if ($definition->hasRelations()) {
+            foreach ($definition->getRelations() as $relation) {
+                $name = $relation->getName();
                 if (isset($entity->{$name})) {
                     $data[$name] = $entity->{$name};
                 }

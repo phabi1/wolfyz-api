@@ -2,7 +2,11 @@
 
 namespace App\Core\Entity;
 
+use App\Core\Entity\EntityManager;
+use App\Core\Entity\Definition\Definition;
 use App\Core\Entity\Definition\Relation;
+use App\Core\Db\Query;
+use App\Core\Entity\Search\SearchInterface;
 
 class EntityService implements EntityServiceInterface
 {
@@ -14,10 +18,18 @@ class EntityService implements EntityServiceInterface
 
     private $aliasMap;
 
+    private SearchInterface $search;
+
     public function __construct(EntityManager $entityManager)
     {
         $this->aliasMap = new AliasMapper();
         $this->setEntityManager($entityManager);
+        $this->setSearch(new \App\Core\Entity\Search\DefaultSearch());
+    }
+
+    public function getEntityManager(): EntityManager
+    {
+        return $this->entityManager;
     }
 
     public function setEntityManager(EntityManager $entityManager)
@@ -29,6 +41,18 @@ class EntityService implements EntityServiceInterface
     public function setEntityName($entityName)
     {
         $this->entityName = $entityName;
+        return $this;
+    }
+
+    public function getSearch()
+    {
+        return $this->search;
+    }
+
+    public function setSearch(SearchInterface $search)
+    {
+        $this->search = $search;
+        $this->search->setEntityService($this);
         return $this;
     }
 
@@ -48,69 +72,36 @@ class EntityService implements EntityServiceInterface
         return $this->getRepository()->getDefinition(); // Implementation for fetching the entity definition from the repository
     }
 
-    public function items($filters = [], $page = 1, $size = 10, $sort = null, array $fields = [])
+    public function getAliasMap()
+    {
+        return $this->aliasMap;
+    }
+
+    public function items($filters = [], $page = 1, $size = 10, $sort = null, array $fields = [], string $search = '')
     {
         $options = [
             'offset' => ($page - 1) * $size,
             'limit' => $size,
         ];
 
-        $db = $this->entityManager->getDb();
-        $query = $db->createQuery();
-        $definition = $this->getDefinition();
+        $joins = [];
+        $query = $this->buildConditions($filters, $search, $joins);
 
         $alias = $this->aliasMap->getAlias($this->entityName);
-        $query->from($definition['table'], $alias);
-
-
-        if ($filters) {
-            foreach ($filters as $field => $condition) {
-                $fieldDef = $definition['fields'][$field] ?? null;
-                if (!$fieldDef) {
-                    continue; // Skip unknown fields
-                }
-
-                $this->applyFilterToSql($query, $field, $condition, $alias);
-            }
-        }
-
-        $joins = [];
-        if ($this->hasRelations($definition)) {
-            foreach ($definition['relations'] as $name => $relation) {
-                $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
-                $relationAlias = $this->aliasMap->getAlias($relation['target_entity']);
-
-                $match = false;
-
-                foreach ($relationDefinition['fields'] as $fieldName => $fieldDef) {
-                    $key = $name . '.' . $fieldName;
-                    if (isset($filters[$key])) {
-                        $this->applyFilterToSql($query, $fieldName, $filters[$key], $relationAlias);
-                        $match = true;
-                    }
-                }
-
-                if ($match) {
-                    $query->join($relationDefinition['table'], $relationAlias, $alias . '.' . $relation['options']['join_field'] . ' = ' . $relationAlias . '.id');
-                    $joins[] = $name;
-                }
-            }
-        }
-
         if ($sort) {
             foreach ($sort as $sortItem) {
                 list($field, $order) = $sortItem;
                 if (strpos($field, '.') !== false) {
                     list($relationName, $relationField) = explode('.', $field);
-                    if (!isset($this->getDefinition()['relations'][$relationName])) {
+                    if (!$this->getDefinition()->hasRelation($relationName)) {
                         continue; // Skip unknown relations
                     }
-                    $relation = $this->getDefinition()['relations'][$relationName];
+                    $relation = $this->getDefinition()->getRelation($relationName);
                     $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
                     $relationAlias = $this->aliasMap->getAlias($relation['target_entity']);
 
                     if (!in_array($relationName, $joins)) {
-                        $query->join($relationDefinition['table'], $relationAlias, $alias . '.' . $this->getDefinition()['relations'][$relationName]['options']['join_field'] . ' = ' . $relationAlias . '.id');
+                        $query->join($relationDefinition->getTable(), $relationAlias, $alias . '.' . $this->getDefinition()->getRelation($relationName)['options']['join_field'] . ' = ' . $relationAlias . '.id');
                         $joins[] = $relationName;
                     }
                     $query->orderBy($relationAlias . '.' . $relationField, $order);
@@ -127,7 +118,7 @@ class EntityService implements EntityServiceInterface
         } else if ($options['limit'] !== null) {
             $query->range($options['limit']);
         }
-
+        $db = $this->entityManager->getDb();
         $result = $db->rows($query);
 
         $ids = array_column($result, 'id');
@@ -141,47 +132,15 @@ class EntityService implements EntityServiceInterface
         return count($result) > 0 ? $result[0] : null;
     }
 
-    public function count($filters = [])
+    public function count($filters = [], string $search = '')
     {
         $db = $this->entityManager->getDb();
         $query = $db->createQuery();
         $definition = $this->getDefinition();
 
         $alias = $this->aliasMap->getAlias($this->entityName);
-        $query->from($definition['table'], $alias);
-
-
-        if ($filters) {
-            foreach ($filters as $field => $condition) {
-                $fieldDef = $definition['fields'][$field] ?? null;
-                if (!$fieldDef) {
-                    continue; // Skip unknown fields
-                }
-
-                $this->applyFilterToSql($query, $field, $condition, $alias);
-            }
-        }
-
-        if ($this->hasRelations($definition)) {
-            foreach ($definition['relations'] as $name => $relation) {
-                $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
-                $relationAlias = $this->aliasMap->getAlias($relation['target_entity']);
-
-                $match = false;
-
-                foreach ($relationDefinition['fields'] as $fieldName => $fieldDef) {
-                    $filterKey = $name . '.' . $fieldName;
-                    if (isset($filters[$filterKey])) {
-                        $this->applyFilterToSql($query, $fieldName, $filters[$filterKey], $relationAlias);
-                        $match = true;
-                    }
-                }
-
-                if ($match) {
-                    $query->join($relationDefinition['table'], $relationAlias, $alias . '.' . $relation['options']['join_field'] . ' = ' . $relationAlias . '.id');
-                }
-            }
-        }
+        $joins = [];
+        $query = $this->buildConditions($filters, $search, $joins);
 
         $query->select($alias . '.id');
 
@@ -207,6 +166,62 @@ class EntityService implements EntityServiceInterface
     public function delete($id)
     {
         return $this->getRepository()->delete($id); // Implementation for deleting an existing item by ID based on the definition
+    }
+
+    public function buildSearch(Query $query, string $search, array &$joins)
+    {
+        if (empty($search)) {
+            return;
+        }
+
+        $this->getSearch()->build($query, $search, $joins);
+    }
+
+    protected function buildConditions(array $filters = [], string $search = '', array &$joins = [])
+    {
+        $db = $this->entityManager->getDb();
+        $query = $db->createQuery();
+        $definition = $this->getDefinition();
+
+        $alias = $this->aliasMap->getAlias($this->entityName);
+        $query->from($definition->getTable(), $alias);
+
+        if ($filters) {
+            foreach ($filters as $field => $condition) {
+                $fieldDef = $definition->getFields()->get($field);
+                if (!$fieldDef) {
+                    continue; // Skip unknown fields
+                }
+
+                $this->applyFilterToSql($query, $field, $condition, $alias);
+            }
+        }
+
+        if ($this->hasRelations($definition)) {
+            foreach ($definition->getRelations() as $name => $relation) {
+                $relationDefinition = $this->entityManager->getRepository($relation->getTargetEntity())->getDefinition();
+                $relationAlias = $this->aliasMap->getAlias($relation->getTargetEntity());
+
+                $match = false;
+
+                foreach ($relationDefinition->getFields() as $fieldName => $fieldDef) {
+                    $key = $name . '.' . $fieldName;
+                    if (isset($filters[$key])) {
+                        $this->applyFilterToSql($query, $fieldName, $filters[$key], $relationAlias);
+                        $match = true;
+                    }
+                }
+
+                if ($match) {
+                    $query->join($relationDefinition->getTable(), $relationAlias, $alias . '.' . $relation->getOption('join_field') . ' = ' . $relationAlias . '.id');
+                    $joins[] = $name;
+                }
+            }
+        }
+
+        $this->buildSearch($query, $search, $joins);
+
+        return $query;
     }
 
     protected function applyFilterToSql($query, $field, $condition, $alias = null)
@@ -282,34 +297,36 @@ class EntityService implements EntityServiceInterface
         $query = $db->createQuery();
         $definition = $this->getDefinition();
         $alias = $this->aliasMap->getAlias($this->entityName);
-        $query->from($definition['table'], $alias);
+        $query->from($definition->getTable(), $alias);
 
-        foreach ($definition['fields'] as $fieldName => $fieldDef) {
-            if (!$byPassFields && !in_array($fieldName, $fields)) {
+        foreach ($definition->getFields() as $fieldDef) {
+            if (!$byPassFields && !in_array($fieldDef->getName(), $fields)) {
                 continue; // Skip fields not in the requested list
             }
-            $query->select($alias . '.' . $fieldName);
+            $query->select($alias . '.' . $fieldDef->getName());
         }
 
         $query->where($db->expr()->in($alias . '.id', $ids));
 
         $relationFields = [];
 
-        if ($this->hasRelations($definition)) {
-            foreach ($definition['relations'] as $name => $relation) {
+        if ($definition->hasRelations()) {
+            foreach ($definition->getRelations() as $relation) {
 
+                
+                $name = $relation->getName();
                 if (!$byPassFields && !in_array($name, $fields)) {
                     continue; // Skip relations not in the requested list
-                }
-
+                    }
+                    
                 $relationFields[] = $name;
-                $relationDefinition = $this->entityManager->getRepository($relation['target_entity'])->getDefinition();
-                $relationAlias = $this->aliasMap->getAlias($relation['target_entity']);
+                $relationDefinition = $this->entityManager->getRepository($relation->getTargetEntity())->getDefinition();
+                $relationAlias = $this->aliasMap->getAlias($relation->getTargetEntity());
 
-                if ($relation['type'] === Relation::TYPE_ONE_TO_ONE) {
-                    $query->leftJoin($relationDefinition['table'], $relationAlias, $alias . '.' . $relation['options']['join_field'] . ' = ' . $relationAlias . '.id');
-                } else if ($relation['type'] === Relation::TYPE_ONE_TO_MANY) {
-                    $query->leftJoin($relationDefinition['table'], $relationAlias, $relationAlias . '.' . $relation['options']['join_field'] . ' = ' . $alias . '.id');
+                if ($relation->getType() === Relation::TYPE_ONE_TO_ONE) {
+                    $query->leftJoin($relationDefinition->getTable(), $relationAlias, $alias . '.' . $relation->getOption('join_field') . ' = ' . $relationAlias . '.id');
+                } else if ($relation->getType() === Relation::TYPE_ONE_TO_MANY) {
+                    $query->leftJoin($relationDefinition->getTable(), $relationAlias, $relationAlias . '.' . $relation->getOption('join_field') . ' = ' . $alias . '.id');
                 }
 
                 $query->select('GROUP_CONCAT(' . $relationAlias . '.id) as ' . $name . '_ids');
@@ -344,18 +361,19 @@ class EntityService implements EntityServiceInterface
 
     private function hasRelations($definition)
     {
-        return isset($definition['relations']) && is_array($definition['relations']) && !empty($definition['relations']);
+        return $definition->hasRelations();
     }
 
-    private function loadRelations(&$items, $definition)
+    private function loadRelations(&$items, Definition $definition)
     {
-        if (!$this->hasRelations($definition)) {
+        if (!$definition->hasRelations()) {
             return;
         }
-        foreach ($definition['relations'] as $name => $relation) {
+        foreach ($definition->getRelations() as $relation) {
+            $name = $relation->getName();
             $ids = [];
             $prop = $name . '_ids';
-            $relationType = $definition['relations'][$name]['type'];
+            $relationType = $relation->getType();
 
             foreach ($items as $item) {
                 if (!empty($item->$prop)) {
@@ -369,7 +387,7 @@ class EntityService implements EntityServiceInterface
             }
 
 
-            $relatedItems = $this->entityManager->getRepository($relation['target_entity'])->findByIds($ids);
+            $relatedItems = $this->entityManager->getRepository($relation->getTargetEntity())->findByIds($ids);
             $relatedItemsById = [];
             foreach ($relatedItems as $relatedItem) {
                 $relatedItemsById[$relatedItem->id] = $relatedItem;
