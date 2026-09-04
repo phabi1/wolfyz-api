@@ -99,7 +99,7 @@ class PresenceList
             $this->renderMembers($pdf, $headers, $this->members[$lesson->id] ?? []);
         }
 
-        return $pdf->Output('I', '', true);
+        return $pdf->Output('S', '', true);
     }
 
 

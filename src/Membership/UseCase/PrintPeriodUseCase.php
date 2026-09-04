@@ -105,7 +105,7 @@ class PrintPeriodUseCase implements UseCaseInterface
 
         $pdfContent = $pdf->render();
         return [
-            'pdf' => base64_encode($pdfContent),
+            'pdf' => $pdfContent,
             'filename' => $this->generateFilename($period)
         ];
     }
