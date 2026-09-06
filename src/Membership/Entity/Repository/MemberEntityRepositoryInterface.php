@@ -9,5 +9,5 @@ interface MemberEntityRepositoryInterface extends EntityRepositoryInterface
 {
     public function existsHash(string $hash): int|null;
 
-    public function findSuggestions(string $lastname, string $firstname, string $birthdate, int $minScore = 0): array;
+    public function findSuggestions(string $lastname, string $firstname, string $birthdate): array;
 }

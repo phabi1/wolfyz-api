@@ -15,8 +15,7 @@ class ApiKeyStrategy implements StrategyInterface
 
     public function authenticate(Request $request): bool
     {
-        $apiKey = $request->headers->get('X-API-KEY');
-        // Implement your API key validation logic here
+        $apiKey = $request->headers->get('x-api-key');
         return $apiKey === $this->apiKey;
     }
 }

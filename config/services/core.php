@@ -41,7 +41,10 @@ return
         ],
         'entity.manager' => [
             'class' => \App\Core\Entity\EntityManager::class,
-            'arguments' => ['@entity.definition', '@db']
+            'arguments' => ['@entity.definition', '@db', '@entity.repository']
+        ],
+        'entity.repository' => [
+            'class' => \App\Core\Entity\EntityRepositoryLocator::class,
         ],
         'translator' => [
             'class' => \App\Core\Translation\Translator::class
@@ -80,11 +83,29 @@ return
             'arguments' => ['@router-generator'],
             'tags' => [['name' => 'view.helper', 'value' => 'route']]
         ],
+        'helper' => [
+            'class' => \App\Core\Di\Locator::class,
+            'arguments' => ['helper']
+        ],
         'helper.string' => [
-            'class' => \App\Core\Helper\StringHelper::class
+            'class' => \App\Core\Helper\StringHelper::class,
+            'tags' => [['name' => 'helper', 'value' => 'string']]
         ],
         'helper.date' => [
-            'class' => \App\Core\Helper\DateHelper::class
+            'class' => \App\Core\Helper\DateHelper::class,
+            'tags' => [['name' => 'helper', 'value' => 'date']]
+        ],
+        'helper.email' => [
+            'class' => \App\Core\Helper\EmailHelper::class,
+            'tags' => [['name' => 'helper', 'value' => 'email']]
+        ],
+        'helper.phone' => [
+            'class' => \App\Core\Helper\PhoneHelper::class,
+            'tags' => [['name' => 'helper', 'value' => 'phone']]
+        ],
+        'helper.name' => [
+            'class' => \App\Core\Helper\NameHelper::class,
+            'tags' => [['name' => 'helper', 'value' => 'name']]
         ],
         'security.firewall' => [
             'class' => \App\Core\Security\Firewall::class

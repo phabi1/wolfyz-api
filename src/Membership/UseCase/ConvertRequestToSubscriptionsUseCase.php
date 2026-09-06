@@ -106,13 +106,6 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
                 'campaign_id' => $campaignId,
             ];
 
-            $address = $this->extractAddress($data);
-
-            $subscriptionData['address'] = $address;
-
-            $subscriptionData['email'] = $request->data->contact->email ?? null;
-            $subscriptionData['phone'] = $request->data->contact->phone ?? null;
-
             $subscription = $this->subscriptionRepository->insert($subscriptionData);
 
             $contactData = $this->extractContacts($data);
@@ -138,6 +131,14 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
             $log['created']++;
         }
         return $log;
+    }
+
+    private function extractGender(array &$data): ?string
+    {
+        if (!isset($data['gender'])) {
+            return null;
+        }
+        return ($data['gender'] === 'F') ? 'female' : 'male';
     }
 
     private function extractAddress(\stdClass $data): array
@@ -205,6 +206,10 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
             'firstname' => $data->firstname,
             'lastname' => $data->lastname,
             'birthdate' => $birthdate,
+            'gender' => $this->extractGender($data),
+            'address' => $this->extractAddress($data),
+            'email' => $data->email ?? null,
+            'phone' => $data->phone ?? null,
             'license_number' => $this->isValidLicenseNumber($data->licence ?? null) ? $data->licence : null,
             'hash' => $hash
         ]);
@@ -214,7 +219,7 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
      * Updates a member's information if necessary.
      * @param mixed $member
      * @param \stdClass $data
-     * @return bool Returns true if the member was updated, false if no update was needed
+     * @return \stdClass Returns the member object after attempting an update. If no update was needed, returns the original member object.
      */
     private function updateMember($member, \stdClass $data)
     {
@@ -226,6 +231,24 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
             && $data->licence !== $member->license_number
         ) {
             $updateData['license_number'] = $data->licence;
+        }
+
+        $gender = $this->extractGender($data);
+        if ($gender !== null && $gender !== $member->gender) {
+            $updateData['gender'] = $gender;
+        }
+
+        if (isset($data->phone) && $data->phone !== $member->phone) {
+            $updateData['phone'] = $data->phone;
+        }
+
+        if (isset($data->email) && $data->email !== $member->email) {
+            $updateData['email'] = $data->email;
+        }
+
+        $address = $this->extractAddress($data);
+        if ($address !== $member->address) {
+            $updateData['address'] = $address;
         }
 
         if (empty($updateData)) {

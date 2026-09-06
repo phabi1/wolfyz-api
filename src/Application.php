@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Core\Security\Firewall;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -38,7 +39,20 @@ class Application
 
         try {
             $routeParameters = $urlMatcher->match($request->getPathInfo());
+
             $request->attributes->add($routeParameters);
+    
+            /**
+             * @var Firewall
+             */
+            $firewall = $this->container->get('security.firewall');
+            $authenticated = $firewall->authenticate($request);
+            if (!$authenticated) {
+                $response = new JsonResponse(['message' => 'Unauthorized'], 401);
+                $this->withCors($response, $referer);
+                $response->send();
+                return;
+            }
 
             $controller = $routeParameters[0];
             $action = $routeParameters[1];

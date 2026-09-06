@@ -43,6 +43,7 @@ class MemberController extends EntityController
         return [
             'exists' => $result['exists'],
             'id' => $result['id'] ?? null,
+            'member' => $result['member'] ?? null,
             'suggestions' => $result['suggestions'] ?? []
         ];
     }

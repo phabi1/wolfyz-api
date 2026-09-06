@@ -66,15 +66,18 @@ return [
         ]
     ],
     'wolf-memberships.member' => [
-        'repository' => App\Membership\Entity\Repository\MemberEntityRepository::class,
+        'repository' => 'member',
         'table' => 'wolf_memberships_member',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
             'firstname' => ['type' => Field::TYPE_STRING, 'required' => true],
             'lastname' => ['type' => Field::TYPE_STRING, 'required' => true],
             'birthdate' => ['type' => Field::TYPE_DATE, 'required' => true],
-            'license_number' => ['type' => Field::TYPE_STRING],
+            'phone' => ['type' => Field::TYPE_PHONE, 'nullable' => true],
+            'email' => ['type' => Field::TYPE_EMAIL, 'nullable' => true],
             'gender' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'address' => ['type' => Field::TYPE_JSON],
+            'license_number' => ['type' => Field::TYPE_STRING],
             'avatar_url' => ['type' => Field::TYPE_STRING, 'nullable' => true],
             'hash' => ['type' => Field::TYPE_STRING, 'readonly' => true, 'hidden' => true]
         ],
@@ -102,8 +105,8 @@ return [
             'status' => ['type' => Field::TYPE_STRING, 'required' => true],
             'firstname' => ['type' => Field::TYPE_STRING, 'required' => true],
             'lastname' => ['type' => Field::TYPE_STRING, 'required' => true],
-            'email' => ['type' => Field::TYPE_STRING, 'required' => true],
-            'phone' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'email' => ['type' => Field::TYPE_EMAIL, 'required' => true],
+            'phone' => ['type' => Field::TYPE_PHONE, 'nullable' => true],
             'data' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             'discount_amount' => ['type' => Field::TYPE_INTEGER],
             'token' => ['type' => Field::TYPE_STRING, 'required' => true, 'exclude' => true],
@@ -136,10 +139,6 @@ return [
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
             'license_type' => ['type' => Field::TYPE_STRING, 'required' => true],
-            'status' => ['type' => Field::TYPE_STRING, 'required' => true],
-            'address' => ['type' => Field::TYPE_JSON, 'required' => true],
-            'phone' => ['type' => Field::TYPE_STRING, 'nullable' => true],
-            'email' => ['type' => Field::TYPE_STRING, 'required' => true],
             'fields' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             'subscribed_at' => ['type' => Field::TYPE_DATETIME, 'required' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
@@ -184,6 +183,8 @@ return [
             'firstname' => ['type' => Field::TYPE_STRING, 'required' => true],
             'lastname' => ['type' => Field::TYPE_STRING, 'required' => true],
             'phone' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'email' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'owner' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
             "subscription_id" => ['type' => Field::TYPE_INTEGER, 'required' => true],
         ],
         'relations' => [

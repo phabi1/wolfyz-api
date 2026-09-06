@@ -2,6 +2,8 @@
 
 namespace App\Core\Mvc\Controller;
 
+use App\Core\Entity\Exception\DuplicateEntityException;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Core\Entity\EntityService;
 use App\Core\Entity\EntityServiceInterface;
@@ -76,10 +78,18 @@ class EntityController extends ApiController
     {
         $body = $request->getPayload()->all();
         $data = $this->prepareDataFromRequest($body, $request);
+        $errors = $this->validateData($data, null);
+        if (!empty($errors)) {
+            return new JsonResponse(['errors' => $errors], 400);
+        }
         $fields = $this->extractFieldsFromRequest($request);
 
-        $entity = $this->getEntityService()->create($data);
-        return $this->serializeItem($entity);
+        try {
+            $entity = $this->getEntityService()->create($data);
+            return $this->serializeItem($entity);
+        } catch (DuplicateEntityException $e) {
+            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 400);
+        }
     }
 
     public function updateAction(Request $request)
@@ -90,8 +100,17 @@ class EntityController extends ApiController
         $body = $request->getPayload()->all();
         $data = $this->prepareDataFromRequest($body, $request);
 
-        $entity = $this->getEntityService()->update($id, $data);
-        return $this->serializeItem($entity);
+        $errors = $this->validateData($data, (int) $id);
+        if (!empty($errors)) {
+            return new JsonResponse(['errors' => $errors], 400);
+        }
+
+        try {
+            $entity = $this->getEntityService()->update($id, $data);
+            return $this->serializeItem($entity);
+        } catch (DuplicateEntityException $e) {
+            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 400);
+        }
     }
 
     public function deleteAction(Request $request)
@@ -219,6 +238,22 @@ class EntityController extends ApiController
             }
         }
         return $data;
+    }
+
+    protected function validateData(array $data, ?int $id)
+    {
+        $definition = $this->getEntityService()->getDefinition();
+        $errors = [];
+        if ($id === null) {
+            foreach ($definition->getFields() as $field) {
+                $name = $field->getName();
+                if ($field->isRequired() && !isset($data[$name])) {
+                    $errors[$name] = 'This field is required.';
+                }
+            }
+        }
+
+        return $errors;
     }
 
     protected function serializeCollection($entities)

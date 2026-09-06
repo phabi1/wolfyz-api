@@ -4,6 +4,7 @@ namespace App\Membership\Controller;
 
 use App\Core\UseCase\UseCaseBus;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 class SubscriptionController extends AbstractCampaignController
 {
@@ -12,19 +13,27 @@ class SubscriptionController extends AbstractCampaignController
 
     public function importAction($request)
     {
-        $campaignId = $request->get_param('campaign_id');
+        $campaignId = $request->attributes->get('campaign_id');
         if (!$campaignId) {
             return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
-        $files = $request->get_file_params();
+        $files = $request->files->all();
 
         if (empty($files['file'])) {
             return new JsonResponse(['error' => 'file_not_provided', 'message' => 'No file provided for import'], 400);
         }
 
+        $filepath = APP_DIR . '/uploads/' . uniqid() . '.csv';
+        if (!is_dir(APP_DIR . '/uploads/')) {
+            mkdir(APP_DIR . '/uploads/', 0777, true);
+        }
+        if (!move_uploaded_file($_FILES['file']['tmp_name'], $filepath)) {
+            return new JsonResponse(['error' => 'file_upload_failed', 'message' => 'Failed to upload the file'], 500);
+        }
+
         $log = $this->useCaseBus('wolf-memberships.import_subscriptions', [
             'campaign_id' => $campaignId,
-            'file' => $files['file']['tmp_name']
+            'file' => $filepath
         ]);
 
         return [
@@ -33,9 +42,9 @@ class SubscriptionController extends AbstractCampaignController
         ];
     }
 
-    public function exportAction($request)
+    public function exportAction(Request $request)
     {
-        $campaignId = $request->get_param('campaign_id');
+        $campaignId = $request->attributes->get('campaign_id');
         if (!$campaignId) {
             return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
@@ -56,10 +65,35 @@ class SubscriptionController extends AbstractCampaignController
         exit;
     }
 
-    protected function buildSearchFilters($search, &$filters)
+    public function syncAction(Request $request)
     {
-        if ($search) {
-            $filters['member.lastname'] = ['like' => '%' . $search . '%'];
+        $campaignId = $request->attributes->get('campaign_id');
+        if (!$campaignId) {
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
+
+        $files = $request->files->all();
+
+        if (empty($files['file'])) {
+            return new JsonResponse(['error' => 'file_not_provided', 'message' => 'No file provided for sync'], 400);
+        }
+
+        $filepath = APP_DIR . '/uploads/' . uniqid() . '.csv';
+        if (!is_dir(APP_DIR . '/uploads/')) {
+            mkdir(APP_DIR . '/uploads/', 0777, true);
+        }
+        if (!move_uploaded_file($_FILES['file']['tmp_name'], $filepath)) {
+            return new JsonResponse(['error' => 'file_upload_failed', 'message' => 'Failed to upload the file'], 500);
+        }
+
+        $log = $this->useCaseBus('wolf-memberships.sync_subscriptions', [
+            'campaign_id' => $campaignId,
+            'file' => $filepath
+        ]);
+
+        return [
+            'success' => true,
+            'log' => $log
+        ];
     }
 }

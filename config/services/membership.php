@@ -1,5 +1,17 @@
 <?php
 return [
+    'wolf-memberships.entity.repository.member' => [
+        'class' => \App\Membership\Entity\Repository\MemberEntityRepository::class,
+        'arguments' => [
+            '@helper.string'
+        ],
+        'tags' => [
+            [
+                'name' => 'entity.repository',
+                'value' => 'member'
+            ]
+        ]
+    ],
     'wolf-memberships.controller.dashboard' => [
         'class' => \App\Membership\Controller\DashboardController::class,
         'arguments' => [
@@ -154,6 +166,20 @@ return [
             [
                 'name' => 'use-case',
                 'value' => 'wolf-memberships.export_subscriptions'
+            ]
+        ]
+    ],
+    'wolf-memberships.use-case.sync_subscriptions' => [
+        'class' => \App\Membership\UseCase\SyncSubscriptionsUseCase::class,
+        'arguments' => [
+            '@entity.manager',
+            '@wolf-memberships.helper.member',
+            '@helper'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.sync_subscriptions'
             ]
         ]
     ],

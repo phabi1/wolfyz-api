@@ -313,12 +313,12 @@ class EntityService implements EntityServiceInterface
         if ($definition->hasRelations()) {
             foreach ($definition->getRelations() as $relation) {
 
-                
+
                 $name = $relation->getName();
                 if (!$byPassFields && !in_array($name, $fields)) {
                     continue; // Skip relations not in the requested list
-                    }
-                    
+                }
+
                 $relationFields[] = $name;
                 $relationDefinition = $this->entityManager->getRepository($relation->getTargetEntity())->getDefinition();
                 $relationAlias = $this->aliasMap->getAlias($relation->getTargetEntity());
@@ -382,22 +382,24 @@ class EntityService implements EntityServiceInterface
             }
 
             $ids = array_unique($ids);
-            if (empty($ids)) {
-                continue;
-            }
 
+            if (!empty($ids)) {
+                $relatedItems = $this->entityManager->getRepository($relation->getTargetEntity())->findByIds($ids);
 
-            $relatedItems = $this->entityManager->getRepository($relation->getTargetEntity())->findByIds($ids);
-            $relatedItemsById = [];
-            foreach ($relatedItems as $relatedItem) {
-                $relatedItemsById[$relatedItem->id] = $relatedItem;
+                $relatedItemsById = [];
+                foreach ($relatedItems as $relatedItem) {
+                    $relatedItemsById[$relatedItem->id] = $relatedItem;
+                }
+            } else {
+                $relatedItemsById = [];
             }
 
             foreach ($items as $item) {
-                if (empty($item->$prop)) {
-                    continue;
+                if (!empty($item->$prop)) {
+                    $relatedIds = array_unique(explode(',', $item->$prop));
+                } else {
+                    $relatedIds = [];
                 }
-                $relatedIds = array_unique(explode(',', $item->$prop));
                 if ($relationType === Relation::TYPE_ONE_TO_ONE) {
                     $relatedId = $relatedIds[0] ?? null;
                     $item->$name = isset($relatedItemsById[$relatedId]) ? $relatedItemsById[$relatedId] : null;

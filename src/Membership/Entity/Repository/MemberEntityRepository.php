@@ -3,9 +3,18 @@
 namespace App\Membership\Entity\Repository;
 
 use App\Core\Entity\EntityRepository;
+use App\Core\Helper\StringHelper;
 
 class MemberEntityRepository extends EntityRepository implements MemberEntityRepositoryInterface
 {
+
+    private StringHelper $stringHelper;
+
+    public function __construct(StringHelper $stringHelper)
+    {
+        $this->stringHelper = $stringHelper;
+    }
+
     public function existsHash(string $hash): int|null
     {
         $query = $this->db->createQuery();
@@ -25,34 +34,22 @@ class MemberEntityRepository extends EntityRepository implements MemberEntityRep
      * @param string $birthdate
      * @return array
      */
-    public function findSuggestions(string $lastname, string $firstname, string $birthdate, int $minScore = 0): array
+    public function findSuggestions(string $lastname, string $firstname, string $birthdate): array
     {
+        $firstname = $this->stringHelper->slug($firstname);
+        $lastname = $this->stringHelper->slug($lastname);
+        $birthdate = $this->stringHelper->slug($birthdate);
+
         $query = $this->db->createQuery();
-        $query->select('id')->select('firstname')->select('lastname')->select('birthdate')
-            ->select('(
-        (CASE WHEN LOWER(firstname) = LOWER("' . $firstname . '") THEN 30 ELSE 0 END) +
-        (CASE WHEN SOUNDEX(firstname) = SOUNDEX("' . $firstname . '") THEN 20 ELSE 0 END) +
-        (CASE WHEN LOWER(lastname) = LOWER("' . $lastname . '") THEN 30 ELSE 0 END)
-    )', 'score');
+        $query->select('id')->select('firstname')->select('lastname')->select('birthdate');
         $query->from($this->definition['table']);
 
-        $query->where(
-            $this->db->expr()->or([
-                $this->db->expr()->eq('SOUNDEX(firstname)', 'SOUNDEX("' . $firstname . '")'),
-                $this->db->expr()->eq('SOUNDEX(lastname)', 'SOUNDEX("' . $lastname . '")'),
-            ])
-        );
+        $members = $this->db->rows($query);
 
-        $query->orderBy('score', 'DESC')
-            ->range(5);
+        $recognizer = new \App\Membership\Member\Recognizer($this->stringHelper);
+        $res = $recognizer->recognize($members, $firstname, $lastname);
 
-        if ($minScore > 0) {
-            $query->having(
-                $this->db->expr()->gt(['score', $minScore], true)
-            );
-        }
-
-        $res = $this->db->rows($query);
+        $suggestions = array_splice($res, 0, 5);
 
         return array_map(function ($row) {
             return [
@@ -62,6 +59,6 @@ class MemberEntityRepository extends EntityRepository implements MemberEntityRep
                 'birthdate' => $row->birthdate,
                 'score' => (int) $row->score,
             ];
-        }, $res);
+        }, $suggestions);
     }
 }

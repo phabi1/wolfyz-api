@@ -72,6 +72,9 @@ class Container
             $class = $definition['class'];
             $args = isset($definition['arguments']) ? $definition['arguments'] : array();
             $resolvedArgs = $this->resolveArguments($args);
+            if (!class_exists($class)) {
+                throw new \RuntimeException("Class $class not found for service $name.");
+            }
             $service = new $class(...$resolvedArgs);
         } else if (isset($definition['factory'])) {
             $factory = $definition['factory'];

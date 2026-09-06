@@ -38,6 +38,9 @@ class Db
 
     public function escape(mixed $value): mixed
     {
+        if ($value === null) {
+            return 'NULL';
+        }
         if (is_string($value)) {
             return $this->_handler->escape($value);
         }
@@ -103,9 +106,10 @@ class Db
 
         $sql = 'INSERT INTO ' . $this->quote($this->_handler->prefix . $table) . '(' . implode(',', $keys) . ') VALUES (' . implode(',', $values) . ')';
 
-        $res = $this->_handler->execute($sql);
-        if ($res === false) {
-            $this->handleError();
+        try {
+            $this->_handler->execute($sql);
+        } catch (\Exception $e) {
+            $this->handleError($e);
         }
         return $this->_handler->insertId();
     }
@@ -119,7 +123,7 @@ class Db
             return $this->escape($value);
         }, array_values($data));
 
-        
+
 
         $sql = 'UPDATE ' . $this->quote($this->_handler->prefix . $table) . ' SET ';
         $sets = [];
@@ -136,11 +140,12 @@ class Db
             }
         }
 
-        $res = $this->_handler->execute($sql);
-        if ($res === false) {
-            $this->handleError();
+        try {
+            $res = $this->_handler->execute($sql);
+            return $res;
+        } catch (\Exception $e) {
+            $this->handleError($e);
         }
-        return $res;
     }
 
     public function delete($table, string|ExprInterface $where)
@@ -154,14 +159,15 @@ class Db
             }
         }
 
-        $res = $this->_handler->execute($sql);
-        if ($res === false) {
-            $this->handleError();
+        try {
+            $res = $this->_handler->execute($sql);
+            return $res;
+        } catch (\Exception $e) {
+            $this->handleError($e);
         }
-        return $res;
     }
 
-    private function handleError()
+    private function handleError($e)
     {
         $error = $this->_handler->lastError();
         $message = $error[2] ?? null;
@@ -169,7 +175,7 @@ class Db
             $message = 'Unknown database error.';
         }
         if (str_contains($message, 'Duplicate entry')) {
-            throw new DuplicateEntryException($message, $this->_handler->last_query);
+            throw new DuplicateEntryException($message, $this->_handler->lastQuery());
         }
         throw new DbException($message, $this->_handler->lastQuery());
     }

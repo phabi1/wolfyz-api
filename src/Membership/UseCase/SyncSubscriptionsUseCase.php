@@ -5,41 +5,35 @@ namespace App\Membership\UseCase;
 use App\Core\Di\Locator;
 use App\Core\Entity\EntityManager;
 use App\Core\Helper\DateHelper;
-use App\Core\Helper\NameHelper;
 use App\Core\UseCase\UseCaseInterface;
+use App\Core\Validator\PhoneValidator;
 use App\Membership\Helper\MemberHelper;
-use App\Membership\Model\LicenseType;
 
-class ImportSubscriptionsUseCase implements UseCaseInterface
+class SyncSubscriptionsUseCase implements UseCaseInterface
 {
-    private $subscriptionRepository;
-
-    private $contactRepository;
-
     private $memberRepository;
 
-    private $sessionRepository;
+    private $subscriptionRepository;
 
     private $memberHelper;
 
     private $dateHelper;
-    
-    private $nameHelper;
 
     private $phoneHelper;
+
     private $emailHelper;
+
+    private $nameHelper;
 
     public function __construct(EntityManager $entityManager, MemberHelper $memberHelper, Locator $helpers)
     {
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
-        $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
-        $this->sessionRepository = $entityManager->getRepository('wolf-memberships.session');
         $this->memberHelper = $memberHelper;
         $this->dateHelper = $helpers->get('date');
-        $this->nameHelper = $helpers->get('name');
         $this->phoneHelper = $helpers->get('phone');
         $this->emailHelper = $helpers->get('email');
+        $this->nameHelper = $helpers->get('name');
     }
 
     public function execute(array $params = [])
@@ -77,6 +71,7 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
             'lesson' => 'Tarif',
             'license_type' => 'Type de licence',
             'licence' => 'Numéro de licence',
+            'gender' => 'Sexe',
             'legal_guardian_lastName_1' => 'Nom du tuteur légal 1 (obligatoire si adhérent mineur)',
             'legal_guardian_firstName_1' => 'Prénom du tuteur légal 1 (obligatoire si adhérent mineur)',
             'legal_guardian_phone_1' => 'Téléphone du tuteur légal 1 (obligatoire si adhérent mineur)',
@@ -93,10 +88,13 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
             'payer_firstname' => 'Prénom payeur',
             'payer_lastname' => 'Nom payeur',
             'payer_email' => 'Email payeur',
+            'phone' => 'Téléphone mobile',
         ];
 
         $header = fgetcsv($handle, 0, $separator);
+        $rowIndex = 0;
         while (($row = fgetcsv($handle, 0, $separator)) !== false) {
+            $rowIndex++;
             // Transform the row into an associative array using the header
             $data = $this->transformRowWithHeader($fields, $header, $row);
 
@@ -117,75 +115,25 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
                 'campaign_id' => ['eq' => $campaignId],
             ]);
 
-            if ($existingSubscription) {
+            if (!$existingSubscription) {
                 $log['skipped']++;
                 continue;
             }
 
-            if (!isset($data['license_type']) || !LicenseType::isValidType($data['license_type'])) {
-                $log['skipped']++;
-                continue;
-            }
+            $subscriptionData = [];
 
-            $subscribedAt = null;
-            try {
-                $subscribedAt = isset($data['subscribed_at']) && !empty($data['subscribed_at'])
-                    ? $this->dateHelper->convertToTimestamp($data['subscribed_at'], DateHelper::FORMAT_DMYHI)
-                    : time();
-            } catch (\Exception $e) {
-                $subscribedAt = time();
-            }
-
-            $subscriptionData = [
-                'subscribed_at' => $subscribedAt,
-                'license_type' => $data['license_type'],
-                'member_id' => $member->id,
-                'campaign_id' => $campaignId,
-            ];
+            $subscriptionFields = ['medical_certificate' => ''];
+            $subscriptionData['fields'] = $subscriptionFields;
 
             try {
-                $subscription = $this->subscriptionRepository->insert($subscriptionData);
+                $this->subscriptionRepository->update($existingSubscription->id, $subscriptionData);
             } catch (\Exception $e) {
                 var_dump($e);
                 $log['skipped']++;
                 continue;
             }
 
-            $contactData = $this->extractContacts($data);
-            foreach ($contactData as $contact) {
-                try {
-                $this->contactRepository->insert([
-                    'firstname' => $contact['firstName'],
-                    'lastname' => $contact['lastName'],
-                    'phone' => $contact['phone'] ?? null,
-                    'email' => $contact['email'] ?? null,
-                    'owner' => $contact['owner'] ?? false,
-                    'subscription_id' => $subscription->id,
-                ]);
-                } catch (\Exception $e) {
-                    var_dump($e);
-                    $log['skipped']++;
-                    continue;
-                }
-            }
-
-
-            if (!empty($data['lesson'])) {
-                try {
-                    $this->sessionRepository->insert([
-                        'lesson_id' => $data['lesson'],
-                        'subscription_id' => $subscription->id,
-                        'member_id' => $member->id,
-                        'campaign_id' => $campaignId,
-                    ]);
-                } catch (\Exception $e) {
-                    var_dump($e);
-                    $log['skipped']++;
-                    continue;
-                }
-            }
-            
-            $log['created']++;
+            $log['updated']++;
         }
         fclose($handle);
         return $log;
@@ -199,37 +147,20 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
             $zipcode = str_pad($zipcode, 5, '0', STR_PAD_LEFT);
         }
 
-        return [
-            'number' => $data['address_number'] ?? null,
-            'street_type' => $data['address_street_type'] ?? null,
-            'line_1' => $data['address_line_1'] ?? null,
-            'line_2' => $data['address_line_2'] ?? null,
-            'postal_code' => $zipcode,
-            'city' => $data['city'] ?? null,
-            'country' => $data['country'] ?? null,
-        ];
-    }
+        $number = $data['address_number'] ?? null;
+        $line1 = $data['address_line_1'] ?? null;
+        $line2 = $data['address_line_2'] ?? null;
+        $streetType = $data['address_street_type'] ?? null;
+        $city = $data['city'] ?? null;
+        $country = $data['country'] ?? null;
 
-    /**
-     * Extracts contact information from the data array.
-     * @param array $data
-     * @return array
-     */
-    private function extractContacts(array &$data): array
-    {
-        $contacts = [];
-        for ($i = 1; $i <= 2; $i++) {
-            if (!empty($data["legal_guardian_lastName_$i"]) && !empty($data["legal_guardian_firstName_$i"])) {
-                $contacts[] = [
-                    'lastName' => $data["legal_guardian_lastName_$i"],
-                    'firstName' => $data["legal_guardian_firstName_$i"],
-                    'phone' => $data["legal_guardian_phone_$i"] ?? null,
-                    'email' => $data["legal_guardian_email_$i"] ?? null,
-                    'owner' => false
-                ];
-            }
-        }
-        return $contacts;
+        return [
+            'line1' => $number . ' ' . $streetType . ' ' . $line1,
+            'line2' => $line2,
+            'zipcode' => $zipcode,
+            'city' => $city,
+            'country' => $country,
+        ];
     }
 
     /**
@@ -267,13 +198,25 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
         $birthdate = $this->extractBirthdate($data);
         $hash = $this->memberHelper->generateHash($data['firstName'], $data['lastName'], $birthdate);
 
+        $address = $this->extractAddress($data);
+
+        $phone = $data['phone'] ?? null;
+        if ($phone !== null) {
+            // Sanitize the phone number if it's provided
+            $phone = $this->phoneHelper->sanitize($phone);
+
+            if (!$this->phoneHelper->isValid($phone)) {
+                $phone = null;
+            }
+        }
+
         return $this->memberRepository->insert([
             'firstname' => $this->nameHelper->firstname($data['firstName']),
             'lastname' => $this->nameHelper->lastname($data['lastName']),
             'birthdate' => $birthdate,
-            'address' => $this->extractAddress($data),
-            'phone' => $this->phoneHelper->sanitize($data['phone'] ?? null),
-            'email' => $this->emailHelper->sanitize($data['email'] ?? null),
+            'address' => $address,
+            'phone' => $phone,
+            'email' => $data['email'] ?? null,
             'gender' => $this->extractGender($data),
             'license_number' => $this->isValidLicenseNumber($data['licence'] ?? null) ? $data['licence'] : null,
             'hash' => $hash
@@ -284,7 +227,7 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
      * Updates a member's information if necessary.
      * @param mixed $member
      * @param array $data
-     * @return \stdClass Returns member if the member was updated, otherwise returns the original member
+     * @return \stdClass Returns the member object after attempting an update. If no update was needed, returns the original member object.
      */
     private function updateMember($member, array $data)
     {
@@ -307,17 +250,26 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
         ) {
             $updateData['license_number'] = $data['licence'];
         }
-        if (isset($data['phone']) && $data['phone'] !== $member->phone) {
-            $updateData['phone'] = $this->phoneHelper->sanitize($data['phone'] ?? null);
-        }
-
-        if (isset($data['email']) && $data['email'] !== $member->email) {
-            $updateData['email'] = $this->emailHelper->sanitize($data['email'] ?? null);
-        }
 
         $gender = $this->extractGender($data);
         if ($gender !== null && $gender !== $member->gender) {
             $updateData['gender'] = $gender;
+        }
+
+        $phone = $data['phone'] ?? null;
+        if ($phone !== null) {
+            $phone = $this->phoneHelper->sanitize($phone);
+
+            if (!$this->phoneHelper->isValid($phone)) {
+                $phone = null;
+            }
+        }
+        if ($phone !== $member->phone) {
+            $updateData['phone'] = $phone;
+        }
+
+        if (isset($data['email']) && $data['email'] !== $member->email) {
+            $updateData['email'] = $data['email'];
         }
 
         $address = $this->extractAddress($data);

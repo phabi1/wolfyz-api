@@ -36,13 +36,15 @@ class ExistsMemberUseCase implements UseCaseInterface
         $hash = $this->memberHelper->generateHash($firstname, $lastname, $birthdate);
 
         $id = $this->memberRepository->existsHash($hash);
-        $exists = $id !== null;
+        $exists = $id > 0;
+
+        $member = $exists ? $this->memberRepository->findById($id) : null;
 
         $suggestions = [];
         if (!$exists && $params['suggestions'] ?? false) {
-            $suggestions = $this->memberRepository->findSuggestions($lastname, $firstname, $birthdate, $params['minScore'] ?? 0);
+            $suggestions = $this->memberRepository->findSuggestions($lastname, $firstname, $birthdate);
         }
 
-        return ['exists' => $exists, 'id' => $id, 'suggestions' => $suggestions];
+        return ['exists' => $exists, 'id' => $id, 'member' => $member, 'suggestions' => $suggestions];
     }
 }
