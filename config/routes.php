@@ -4,6 +4,7 @@ return array_merge(
         'welcome' => [
             'path' => '',
             'controller' => ['App\Welcome\Controller\DefaultController', 'index'],
+            'auth' => 'public'
         ],
     ],
     require_once __DIR__ . '/routes/billing.php',
