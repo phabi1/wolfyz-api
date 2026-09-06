@@ -47,6 +47,6 @@ jobs:
             --exclude='parameters.*.php' \
             ./ $SSH_USER@$SSH_SERVER:$FTP_SERVER_DIR/
         
-      - name: Run Update Script
+      - name: Run Update Script To Server
         run: |
           curl -s "${{ secrets.DOMAIN_URL }}/update.php?secret=${{ secrets.DEPLOY_SECRET }}"
