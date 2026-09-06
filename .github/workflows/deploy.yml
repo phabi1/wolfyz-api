@@ -41,7 +41,7 @@ jobs:
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
           DOMAIN_URL: ${{ secrets.DOMAIN_URL }}
         run: |
-          rsync -avz--checksum --no-perms --no-owner --no-group --delete \
+          rsync -avz --checksum --no-perms --no-owner --no-group --delete \
             --exclude='.git*' \
             --exclude='.htaccess' \
             --exclude='parameters.*.php' \
