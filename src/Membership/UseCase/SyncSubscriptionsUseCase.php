@@ -89,6 +89,7 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
             'payer_lastname' => 'Nom payeur',
             'payer_email' => 'Email payeur',
             'phone' => 'Téléphone mobile',
+            'certificat_medical' => 'Certificat médical (moins d\'1 an pour licence competition) ou Attestation',
         ];
 
         $header = fgetcsv($handle, 0, $separator);
@@ -122,7 +123,12 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
 
             $subscriptionData = [];
 
-            $subscriptionFields = ['medical_certificate' => ''];
+            $subscriptionFields = [
+                'medical_certificate' => $data['certificat_medical'] ?? null,
+                'agree_exit' => $this->extractBoolean($data['agree_exit'] ?? null),
+                'agree_image' => $this->extractBoolean($data['agree_image'] ?? null),
+            ];
+
             $subscriptionData['fields'] = $subscriptionFields;
 
             try {
@@ -137,6 +143,16 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
         }
         fclose($handle);
         return $log;
+    }
+
+    private function extractBoolean(?string $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+        $value = trim($value);
+        $value = strtolower($value);
+        return $value === '1' || $value === 'true' || $value === 'yes' || $value === 'on' || $value === 'oui';
     }
 
     private function extractAddress(array &$data): array
