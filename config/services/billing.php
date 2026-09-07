@@ -1,8 +1,17 @@
 <?php
 
 return [
+    'wolf-billing.controller.billing' => [
+        'class' => \App\Billing\Controller\BillingController::class
+    ],
     'wolf-billing.controller.payment' => [
         'class' => \App\Billing\Controller\PaymentController::class
+    ],
+    'wolf-billing.repository.payment' => [
+        'class' => \App\Billing\Entity\Repository\PaymentRepository::class,
+        'tags' => [
+            ['name' => 'entity.repository', 'value' => 'billing.payment']
+        ]
     ],
     'wolf-billing.payment_manager' => [
         'class' => \App\Billing\Payment\PaymentManager::class
@@ -42,6 +51,14 @@ return [
         'arguments' => ['@entity.manager'],
         'tags' => [
             ['name' => 'use-case', 'value' => 'wolf-billing.add_payment']
+        ],
+        'shared' => false
+    ],
+    'wolf-billing.use-case.get_bank_amount' => [
+        'class' => \App\Billing\UseCase\GetBankAmountUseCase::class,
+        'arguments' => ['@entity.manager'],
+        'tags' => [
+            ['name' => 'use-case', 'value' => 'wolf-billing.get_bank_amount']
         ],
         'shared' => false
     ]

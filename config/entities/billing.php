@@ -4,6 +4,7 @@ use App\Core\Entity\Definition\Field;
 
 return [
     'wolf-billing.payment' => [
+        'repository' => 'billing.payment',
         'table' => 'wolf_billing_payment',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
