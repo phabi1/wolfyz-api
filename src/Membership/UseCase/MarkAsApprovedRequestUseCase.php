@@ -8,6 +8,7 @@ use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 use App\Core\Config\Parameters;
 use App\Core\Events\EventDispatcher;
+use App\Membership\Event\RequestStatusChangedEvent;
 
 class MarkAsApprovedRequestUseCase implements UseCaseInterface
 {
@@ -88,7 +89,10 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
             error_log('Failed to send approval email: ' . $e->getMessage());
         }
 
-        $this->eventDispatcher->dispatch('wolf_memberships_request_approved', ['request' => $updatedRequest]);
+        $this->eventDispatcher->dispatch(
+            RequestStatusChangedEvent::EVENT,
+            new RequestStatusChangedEvent($updatedRequest, 'approved')
+        );
 
         return [];
     }

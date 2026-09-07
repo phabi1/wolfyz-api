@@ -94,7 +94,9 @@ class Container
     {
         $resolvedArgs = array();
         foreach ($args as $arg) {
-            if (is_string($arg) && strpos($arg, '@') === 0) {
+            if ($arg === 'self') {
+                $resolvedArgs[] = $this;
+            } else if (is_string($arg) && strpos($arg, '@') === 0) {
                 $resolvedArgs[] = $this->get(substr($arg, 1));
             } else if (is_string($arg) && strpos($arg, '!') === 0) {
                 $resolvedArgs[] = $this->getParameter(substr($arg, 1));

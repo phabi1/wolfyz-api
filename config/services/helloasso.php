@@ -26,7 +26,7 @@ return [
     ],
     'wolf-helloasso.webhook.handler.receive_order' => [
         'class' => \App\HelloAsso\Webhook\Handler\ReceiveOrderHandler::class,
-        'arguments' => ['@helper.string'],
+        'arguments' => ['@helper.string', '@use-case-bus'],
         'tags' => [
             [
                 'name' => 'wolf-helloasso.webhook_handler',

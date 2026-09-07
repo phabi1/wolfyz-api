@@ -2,3 +2,4 @@ vendor
 cache/*
 uploads
 .htaccess
+.phpunit.cache

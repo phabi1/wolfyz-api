@@ -17,5 +17,8 @@
         "symfony/event-dispatcher": "^7.4",
         "phpmailer/phpmailer": "^7.0.0",
         "fpdf/fpdf": "^1.90"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
     }
 }

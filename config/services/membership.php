@@ -405,4 +405,15 @@ return [
             ]
         ]
     ],
+    'wolf-memberships.request_status_changed_listener' => [
+        'class' => \App\Membership\Listener\RequestStatusChangedListener::class,
+        'arguments' => ['@use-case-bus'],
+        'tags' => [
+            [
+                'name' => 'event.listener',
+                'event' => \App\Membership\Event\RequestStatusChangedEvent::EVENT,
+                'method' => 'onStatusChanged'
+            ]
+        ]
+    ]
 ];

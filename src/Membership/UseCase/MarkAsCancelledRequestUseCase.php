@@ -8,6 +8,7 @@ use App\Core\Events\EventDispatcher;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
+use App\Membership\Event\RequestStatusChangedEvent;
 
 class MarkAsCancelledRequestUseCase implements UseCaseInterface
 {
@@ -83,7 +84,10 @@ class MarkAsCancelledRequestUseCase implements UseCaseInterface
             error_log('Failed to send cancellation email: ' . $e->getMessage());
         }
 
-        $this->eventDispatcher->dispatch('wolf_memberships_request_cancelled', ['request' => $updatedRequest]);
+                $this->eventDispatcher->dispatch(
+            RequestStatusChangedEvent::EVENT,
+            new RequestStatusChangedEvent($updatedRequest, 'cancelled')
+        );
 
         return [];
     }

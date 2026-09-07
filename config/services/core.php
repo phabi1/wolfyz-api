@@ -54,7 +54,8 @@ return
             'arguments' => ['@view', '@parameters']
         ],
         'event.dispatcher' => [
-            'class' => \App\Core\Events\EventDispatcher::class
+            'factory' => [\App\Core\Events\EventDispatcherFactory::class, 'create'],
+            'arguments' => ['self']
         ],
         'controller.helpers' => [
             'class' => \App\Core\Mvc\Controller\Helpers::class

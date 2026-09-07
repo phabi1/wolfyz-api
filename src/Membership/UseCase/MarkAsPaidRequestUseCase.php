@@ -8,6 +8,7 @@ use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 use App\Core\Events\EventDispatcher;
+use App\Membership\Event\RequestStatusChangedEvent;
 
 class MarkAsPaidRequestUseCase implements UseCaseInterface
 {
@@ -89,7 +90,10 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
             error_log('Failed to send paid email: ' . $e->getMessage());
         }
 
-        $this->eventDispatcher->dispatch('wolf_memberships_request_paid', ['request' => $updatedRequest]);
+        $this->eventDispatcher->dispatch(
+            RequestStatusChangedEvent::EVENT,
+            new RequestStatusChangedEvent($updatedRequest, 'paid')
+        );
 
         return [];
     }
