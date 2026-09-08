@@ -24,7 +24,7 @@ class WebhookController extends AbstractController
         $valid_ips = ['51.138.206.200']; // Replace with actual IP addresses
         $request_ip = $_SERVER['REMOTE_ADDR'];
         if (!in_array($request_ip, $valid_ips)) {
-            // return new \WP_REST_Response(['status' => 'forbidden'], 403);
+            return new JsonResponse(['status' => 'forbidden'], 403);
         }
 
         $payload = $request->getPayload()->all();
