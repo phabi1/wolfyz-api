@@ -1,5 +1,5 @@
 vendor
 cache/*
-uploads
+files/*
 .htaccess
 .phpunit.cache
