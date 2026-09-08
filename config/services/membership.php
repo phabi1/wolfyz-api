@@ -147,7 +147,7 @@ return [
         'arguments' => [
             '@entity.manager',
             '@wolf-memberships.helper.member',
-            '@helper.date'
+            '@helper'
         ],
         'tags' => [
             [
