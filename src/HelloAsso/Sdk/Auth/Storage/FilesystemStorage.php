@@ -9,8 +9,8 @@ class FilesystemStorage implements StorageInterface
 
     public function setOptions(array $options)
     {
-        if (isset($options['file_path'])) {
-            $this->filePath = $options['file_path'];
+        if (isset($options['path'])) {
+            $this->filePath = $options['path'];
         }
     }
 

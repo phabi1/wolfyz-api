@@ -46,6 +46,7 @@ jobs:
             --exclude='.htaccess' \
             --exclude='parameters.*.php' \
             --exclude='cache' \
+            --exclude='files' \
             ./ $SSH_USER@$SSH_SERVER:$FTP_SERVER_DIR/
         
       - name: Run Update Script To Server

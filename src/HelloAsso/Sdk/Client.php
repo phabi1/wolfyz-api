@@ -2,27 +2,25 @@
 
 namespace App\HelloAsso\Sdk;
 
+use App\HelloAsso\Sdk\Auth\Storage\MemoryStorage;
+
 class Client
 {
     private $auth;
-
     private $apiKey;
     private $apiSecret;
-
     private $organizationSlug = '';
-
     private $sandbox = false;
-
     private $services = [];
 
-    public function __construct($apiKey, $apiSecret, $organizationSlug = '', $options = [])
+    public function __construct(string $apiKey, string $apiSecret, string $organizationSlug = '', array $options = [])
     {
         $this->apiKey = $apiKey;
         $this->apiSecret = $apiSecret;
         $this->organizationSlug = $organizationSlug;
 
         if (isset($options['sandbox'])) {
-            $this->sandbox = $options['sandbox'];
+            $this->sandbox = (bool) $options['sandbox'];
         }
 
         $this->createAuth($options);
@@ -58,7 +56,7 @@ class Client
         return $this->sandbox ? 'https://api.helloasso-sandbox.com/' : 'https://api.helloasso.com/';
     }
 
-    public function getForms()
+    public function getForms(): Forms
     {
         if (!isset($this->services['forms'])) {
             $this->services['forms'] = new Forms($this);
@@ -66,12 +64,20 @@ class Client
         return $this->services['forms'];
     }
 
-    public function getCheckout()
+    public function getCheckout(): Checkout
     {
         if (!isset($this->services['checkout'])) {
             $this->services['checkout'] = new Checkout($this);
         }
         return $this->services['checkout'];
+    }
+
+    public function getOrders(): Orders
+    {
+        if (!isset($this->services['orders'])) {
+            $this->services['orders'] = new Orders($this);
+        }
+        return $this->services['orders'];
     }
 
     public function request($method, $endpoint, $data = [])
@@ -100,8 +106,8 @@ class Client
                 $body = (string) $response->getBody();
 
                 if ($statusCode === 403) {
-                   echo 'Body: ' . $body;
-                   echo 'Access Token: ' . $accessToken;
+                    echo 'Body: ' . $body;
+                    echo 'Access Token: ' . $accessToken;
                 }
 
                 throw new \Exception("HTTP request failed with status code $statusCode: $body");
@@ -113,7 +119,7 @@ class Client
 
     private function createAuth(array $options = [])
     {
-        $info = $options['auth_storage'] ?? 'wordpress';
+        $info = $options['auth_storage'] ?? 'memory';
 
         if (is_string($info)) {
             $type = $info;
@@ -126,8 +132,11 @@ class Client
         }
 
         switch ($type) {
-            case 'wordpress':
-                $storage = new Auth\Storage\WordpressStorage();
+            case 'filesystem':
+                $storage = new Auth\Storage\FilesystemStorage();
+                break;
+            case 'memory':
+                $storage = new Auth\Storage\MemoryStorage();
                 break;
             default:
                 throw new \InvalidArgumentException('Invalid auth_storage type: ' . $type);

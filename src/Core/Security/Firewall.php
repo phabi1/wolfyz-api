@@ -30,6 +30,7 @@ class Firewall implements ContainerAwareInterface
     public function authenticate(Request $request)
     {
         $auth = $request->attributes->get('auth');
+
         if ($auth === null) {
             $auth = $this->defaultStrategy;
         }

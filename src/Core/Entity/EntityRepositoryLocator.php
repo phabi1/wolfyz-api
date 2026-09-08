@@ -2,8 +2,6 @@
 
 namespace App\Core\Entity;
 
-use App\Core\Db\Db;
-use App\Core\Entity\EntityDefinition;
 use App\Core\Di\Locator;
 
 class EntityRepositoryLocator extends Locator
@@ -16,11 +14,14 @@ class EntityRepositoryLocator extends Locator
         parent::__construct('entity.repository');
     }
 
-    public function get($id)
+    public function get(?string $id): mixed
     {
-
-        if ($this->has($id)) {
+        if ($id === null) {
+            $repository = new EntityRepository();
+        } else if ($this->has($id)) {
             $repository = parent::get($id);
+        } else if (class_exists($id)) {
+            $repository = new $id();
         } else {
             $repository = new EntityRepository();
         }

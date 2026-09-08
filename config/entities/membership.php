@@ -139,6 +139,7 @@ return [
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
             'license_type' => ['type' => Field::TYPE_STRING, 'required' => true],
+            'license_taken_at' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
             'fields' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             'subscribed_at' => ['type' => Field::TYPE_DATETIME, 'required' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],

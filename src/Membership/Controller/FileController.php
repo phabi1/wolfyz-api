@@ -2,92 +2,71 @@
 
 namespace App\Membership\Controller;
 
-use App\Core\Mvc\Controller\AbstractController;
-use WP_REST_Request;
+use App\Core\Mvc\Controller\ApiController;
+use App\File\Presign\PresignedUrlService;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
-class FileController extends AbstractController
+class FileController extends ApiController
 {
-    public function uploadAction(WP_REST_Request $request)
+    public function uploadAction(Request $request)
     {
-        $files = $request->get_file_params();
+        $payload = $request->getPayload()->all();
 
-        if (empty($files['file'])) {
-            return new \WP_Error('missing_file', 'No file uploaded', ['status' => 400]);
+        if (empty($payload['file'])) {
+            return new JsonResponse(['message' => 'No file URL uploaded'], 400);
         }
 
-        $uploadedFile = $files['file'];
-
-        $maxFileSize = 5 * 1024 * 1024; // 5 MB
-        if ($uploadedFile['size'] > $maxFileSize) {
-            return new \WP_Error('file_too_large', 'The uploaded file exceeds the maximum allowed size of 5 MB.', ['status' => 400]);
-        }
-
-        $allowedMimeTypes = [
-            'jpg|jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'pdf' => 'application/pdf',
-        ];
-
-        $upload_override = [
-            'test_form' => false, // Disable form validation
-            'test_type' => true, // Enable MIME type checking
-            'mimes' => $allowedMimeTypes,
-        ];
-
-        if (!function_exists('wp_handle_upload')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-
-        add_filter('upload_dir', [$this, 'modifyUploadDir']);
-        $movedFile = wp_handle_upload($uploadedFile, $upload_override);
-        remove_filter('upload_dir', [$this, 'modifyUploadDir']);
-
-        if ($movedFile === false || isset($movedFile['error'])) {
-            $errorMessage = isset($movedFile['error']) ? $movedFile['error'] : 'Unknown error occurred during file upload.';
-            return new \WP_Error('upload_error', $errorMessage, ['status' => 500]);
-        }
-
-        $uploadDir = wp_get_upload_dir();
-
-        $uri = str_replace($uploadDir['basedir'], '', $movedFile['file']);
-
-        // Example response
+        /**
+         * @var PresignedUrlService
+         */
+        $presignedUrlService = $this->getService('file.presigned-url');
+        $uri = $presignedUrlService->upload('membership/' . $payload['file'], $payload['mime_type']);
         return [
             'success' => true,
-            'uri' => $uri,
+            'url' => $uri,
         ];
     }
 
-    public function removeAction(WP_REST_Request $request)
+    public function removeAction(Request $request)
     {
-        $uri = $request->get_param('uri');
+        $payload = $request->getPayload()->all();
+        $file = $payload['file'] ?? null;
 
-        if (!$uri) {
-            return new \WP_Error('missing_uri', 'No file URL provided', ['status' => 400]);
+        if (!$file) {
+            return new JsonResponse(['message' => 'No file URL provided'], 400);
         }
 
-        $uploadDir = wp_get_upload_dir();
-
-        $filePath = $uploadDir['basedir'] . $uri;
-
-        if (file_exists($filePath)) {
-            unlink($filePath);
-        }
+        /**
+         * @var PresignedUrlService
+         */
+        $presignedUrlService = $this->getService('file.presigned-url');
+        $uri = $presignedUrlService->remove($file);
 
         return [
             'success' => true,
-            'message' => 'File deleted successfully.',
+            'url' => $uri,
         ];
     }
 
-    public function modifyUploadDir($dir)
+    public function downloadAction(Request $request)
     {
-        $customDir = '/membership'; // Change this to your desired directory
+        $payload = $request->getPayload()->all();
+        $file = $payload['file'] ?? null;
 
-        $dir['path'] = $dir['basedir'] . $customDir;
-        $dir['url'] = $dir['baseurl'] . $customDir;
-        $dir['subdir'] = $customDir;
+        if (!$file) {
+            return new JsonResponse(['message' => 'No file URL provided'], 400);
+        }
 
-        return $dir;
+        /**
+         * @var PresignedUrlService
+         */
+        $presignedUrlService = $this->getService('file.presigned-url');
+        $uri = $presignedUrlService->download($file);
+
+        return [
+            'success' => true,
+            'url' => $uri,
+        ];
     }
 }

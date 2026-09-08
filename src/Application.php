@@ -54,8 +54,8 @@ class Application
                 return;
             }
 
-            $controller = $routeParameters[0];
-            $action = $routeParameters[1];
+            $controller = $routeParameters['_controller'][0];
+            $action = $routeParameters['_controller'][1];
 
             $controllerInstance = new $controller();
 

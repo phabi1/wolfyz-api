@@ -13,7 +13,7 @@ class Locator implements ContainerAwareInterface
         $this->_tag = $tag;
     }
 
-    public function has($key)
+    public function has(string $key): bool
     {
         $definitionIds = $this->container->findByTag($this->_tag);
         foreach ($definitionIds as $serviceName) {
@@ -27,7 +27,7 @@ class Locator implements ContainerAwareInterface
         return false;
     }
 
-    public function get($key)
+    public function get(string $key): mixed
     {
         $definitionIds = $this->container->findByTag($this->_tag);
         foreach ($definitionIds as $serviceName) {

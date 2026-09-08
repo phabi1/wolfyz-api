@@ -7,13 +7,13 @@ return [
         'controller' => [\App\Membership\Controller\FileController::class, 'upload'],
     ],
     'membership-file-upload-delete' => [
-        'path' => '/membership/file/upload',
-        'methods' => ['DELETE'],
+        'path' => '/membership/file/remove',
+        'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\FileController::class, 'remove'],
     ],
     'membership-file-download-get' => [
         'path' => '/membership/file/download',
-        'methods' => ['GET'],
+        'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\FileController::class, 'download'],
     ],
 ];

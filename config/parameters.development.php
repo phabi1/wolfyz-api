@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'base_url' => getenv('BASE_URL'),
     'db' => [
         'dsn' => 'mysql:host=' . getenv('DB_HOST') . ':' . getenv('DB_PORT') . ';dbname=' . getenv('DB_NAME'),
         'username' => getenv('DB_USERNAME'),
@@ -28,6 +29,20 @@ return [
             'api-key' => [
                 'secret' => getenv('SECURITY_STRATEGY_API_KEY_SECRET')
             ]
+        ]
+    ],
+    'file' => [
+        'secret' => getenv('FILE_SECRET')
+    ],
+    'helloasso' => [
+        'organization_slug' => getenv('HELLOASSO_ORGANIZATION_SLUG'),
+        'credentials' => [
+            'api_key' => getenv('HELLOASSO_API_KEY'),
+            'api_secret' => getenv('HELLOASSO_API_SECRET'),
+        ],
+        'options' => [
+            'sandbox' => true,
+            'auth_storage' => ['type' => 'filesystem', 'options' => ['path' => APP_DIR . '/auth.json']]
         ]
     ],
     'site_contact_url' => getenv('SITE_CONTACT_URL'),

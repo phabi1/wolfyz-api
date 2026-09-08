@@ -3,6 +3,8 @@
 namespace App\HelloAsso\Controller;
 
 use App\Core\Mvc\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class WebhookController extends AbstractController
 {
@@ -16,7 +18,7 @@ class WebhookController extends AbstractController
         return $this->getService('wolf-helloasso.webhook_bus');
     }
 
-    public function handleAction($request)
+    public function handleAction(Request $request)
     {
         //Check valid ip
         $valid_ips = ['51.138.206.200']; // Replace with actual IP addresses
@@ -25,10 +27,10 @@ class WebhookController extends AbstractController
             // return new \WP_REST_Response(['status' => 'forbidden'], 403);
         }
 
-        $payload = $request->get_json_params();
+        $payload = $request->getPayload()->all();
 
         if (empty($payload['eventType'])) {
-            return new \WP_REST_Response(['status' => 'bad_request', 'message' => 'Missing event field'], 400);
+            return new JsonResponse(['status' => 'bad_request', 'message' => 'Missing event field'], 400);
         }
 
         $historyRepository = $this->getHistoryRepository();
@@ -36,7 +38,7 @@ class WebhookController extends AbstractController
         $eventId = $this->generateEventId($payload);
 
         if ($historyRepository->count(['event_id' => ['eq' => $eventId]]) > 0) {
-            return new \WP_REST_Response(['status' => 'duplicate'], 200);
+            return new JsonResponse(['status' => 'duplicate'], 200);
         }
 
         $historyRepository->insert([
@@ -53,7 +55,7 @@ class WebhookController extends AbstractController
             $webhookBus->execute($eventName, $payload);
         }
 
-        return new \WP_REST_Response(['status' => 'success'], 200);
+        return new JsonResponse(['status' => 'success'], 200);
     }
 
     private function mapEventToEventName(array $payload): ?string
