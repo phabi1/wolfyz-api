@@ -5,13 +5,16 @@ namespace App\Membership\UseCase;
 use App\Core\Di\Locator;
 use App\Core\Entity\EntityManager;
 use App\Core\Helper\DateHelper;
-use App\Core\Helper\NameHelper;
 use App\Core\UseCase\UseCaseInterface;
+use App\Core\Watchdog\WatchdogAwareInterface;
+use App\Core\Watchdog\WatchdogAwareTrait;
 use App\Membership\Helper\MemberHelper;
 use App\Membership\Model\LicenseType;
 
-class ImportSubscriptionsUseCase implements UseCaseInterface
+class ImportSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterface
 {
+    use WatchdogAwareTrait;
+
     private $subscriptionRepository;
 
     private $contactRepository;
@@ -23,7 +26,7 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
     private $memberHelper;
 
     private $dateHelper;
-    
+
     private $nameHelper;
 
     private $phoneHelper;
@@ -146,7 +149,7 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
             try {
                 $subscription = $this->subscriptionRepository->insert($subscriptionData);
             } catch (\Exception $e) {
-                var_dump($e);
+                $this->watchdogService->error('Failed to insert subscription for member ' . $member->id, ['exception' => $e->getMessage()]);
                 $log['skipped']++;
                 continue;
             }
@@ -154,16 +157,16 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
             $contactData = $this->extractContacts($data);
             foreach ($contactData as $contact) {
                 try {
-                $this->contactRepository->insert([
-                    'firstname' => $contact['firstName'],
-                    'lastname' => $contact['lastName'],
-                    'phone' => $contact['phone'] ?? null,
-                    'email' => $contact['email'] ?? null,
-                    'owner' => $contact['owner'] ?? false,
-                    'subscription_id' => $subscription->id,
-                ]);
+                    $this->contactRepository->insert([
+                        'firstname' => $contact['firstName'],
+                        'lastname' => $contact['lastName'],
+                        'phone' => $contact['phone'] ?? null,
+                        'email' => $contact['email'] ?? null,
+                        'owner' => $contact['owner'] ?? false,
+                        'subscription_id' => $subscription->id,
+                    ]);
                 } catch (\Exception $e) {
-                    var_dump($e);
+                    $this->watchdogService->error('Failed to insert contact for subscription ' . $subscription->id, ['exception' => $e->getMessage()]);
                     $log['skipped']++;
                     continue;
                 }
@@ -179,12 +182,12 @@ class ImportSubscriptionsUseCase implements UseCaseInterface
                         'campaign_id' => $campaignId,
                     ]);
                 } catch (\Exception $e) {
-                    var_dump($e);
+                    $this->watchdogService->error('Failed to insert session for subscription ' . $subscription->id, ['exception' => $e->getMessage()]);
                     $log['skipped']++;
                     continue;
                 }
             }
-            
+
             $log['created']++;
         }
         fclose($handle);
