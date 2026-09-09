@@ -119,5 +119,13 @@ return
         'security.strategy.public' => [
             'class' => \App\Core\Security\Strategy\PublicStrategy::class,
             'tags' => [['name' => 'security.strategy', 'value' => 'public']]
-        ]
+        ],
+        'watchdog' => [
+            'class' => \App\Core\Watchdog\WatchdogService::class,
+            'arguments' => ['@watchdog.storage.db', '!watchdog.levels'],
+        ],
+        'watchdog.storage.db' => [
+            'class' => \App\Core\Watchdog\Storage\DbStorage::class,
+            'arguments' => ['@db'],
+        ],
     ];

@@ -2,6 +2,8 @@
 
 namespace App\Core\Di;
 
+use App\Core\Watchdog\WatchdogAwareInterface;
+
 class Container
 {
     private $definition = array();
@@ -85,6 +87,10 @@ class Container
 
         if ($service instanceof ContainerAwareInterface) {
             $service->setContainer($this);
+        }
+
+        if ($service instanceof WatchdogAwareInterface) {
+            $service->setWatchdogService($this->get('watchdog'));
         }
 
         return $service;
