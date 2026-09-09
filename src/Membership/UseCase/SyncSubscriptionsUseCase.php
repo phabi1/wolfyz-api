@@ -4,31 +4,41 @@ namespace App\Membership\UseCase;
 
 use App\Core\Di\Locator;
 use App\Core\Entity\EntityManager;
+use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\Helper\DateHelper;
+use App\Core\Helper\NameHelper;
+use App\Core\Helper\EmailHelper;
+use App\Core\Helper\PhoneHelper;
 use App\Core\UseCase\UseCaseInterface;
-use App\Core\Validator\PhoneValidator;
+use App\Core\Watchdog\WatchdogAwareInterface;
+use App\Core\Watchdog\WatchdogAwareTrait;
 use App\Membership\Helper\MemberHelper;
 
-class SyncSubscriptionsUseCase implements UseCaseInterface
+class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterface
 {
-    private $memberRepository;
+    use WatchdogAwareTrait;
 
-    private $subscriptionRepository;
+    private EntityRepositoryInterface $memberRepository;
+
+    private EntityRepositoryInterface $subscriptionRepository;
+
+    private EntityRepositoryInterface $contactRepository;
 
     private $memberHelper;
 
-    private $dateHelper;
+    private DateHelper $dateHelper;
 
-    private $phoneHelper;
+    private PhoneHelper $phoneHelper;
 
-    private $emailHelper;
+    private EmailHelper $emailHelper;
 
-    private $nameHelper;
+    private NameHelper $nameHelper;
 
     public function __construct(EntityManager $entityManager, MemberHelper $memberHelper, Locator $helpers)
     {
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
+        $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
         $this->memberHelper = $memberHelper;
         $this->dateHelper = $helpers->get('date');
         $this->phoneHelper = $helpers->get('phone');
@@ -53,9 +63,19 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
         }
 
         $log = [
-            'created' => 0,
-            'updated' => 0,
-            'skipped' => 0,
+            'subscriptions' => [
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'error' => 0,
+            ],
+            'contacts' => [
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'deleted' => 0,
+                'error' => 0,
+            ],
         ];
 
         $separator = isset($params['separator']) ? $params['separator'] : ',';
@@ -72,6 +92,7 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
             'license_type' => 'Type de licence',
             'licence' => 'Numéro de licence',
             'gender' => 'Sexe',
+            'nationality' => 'Nationalité de l\'adhérent',
             'legal_guardian_lastName_1' => 'Nom du tuteur légal 1 (obligatoire si adhérent mineur)',
             'legal_guardian_firstName_1' => 'Prénom du tuteur légal 1 (obligatoire si adhérent mineur)',
             'legal_guardian_phone_1' => 'Téléphone du tuteur légal 1 (obligatoire si adhérent mineur)',
@@ -89,10 +110,18 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
             'payer_lastname' => 'Nom payeur',
             'payer_email' => 'Email payeur',
             'phone' => 'Téléphone mobile',
-            'certificat_medical' => 'Certificat médical (moins d\'1 an pour licence competition) ou Attestation',
+            'medical_certificate' => 'Certificat médical (moins d\'1 an pour licence compétition) ou Attestation',
+            'identity_photo' => 'Photo d\'identité (obligatoire pour les licences compétition) Format pris en charge dans rolskanet : jpeg, png, gif',
+            'agree_image' => 'J’autorise le club, la fédération ou ses ligues/comités à exploiter toutes les photos et vidéos prises dans le cadre des activités fédérales pour des actions publicitaires ou promotionnelles, conformément à l’article L. 333-1 du Code du sport. Cette autor',
+            'doctor' => 'Nom du médecin (non obligatoire si attestation)',
+            'discipline' => 'Discipline',
+            'license_1' => 'Licence moins 6 ans',
+            'license_2' => 'Licence 6 - 12 ans',
+            'license_3' => 'Licence 13 ans et plus',
         ];
 
         $header = fgetcsv($handle, 0, $separator);
+
         $rowIndex = 0;
         while (($row = fgetcsv($handle, 0, $separator)) !== false) {
             $rowIndex++;
@@ -117,16 +146,23 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
             ]);
 
             if (!$existingSubscription) {
-                $log['skipped']++;
+                $this->watchdogService->debug('Skipping subscription for campaign ' . $campaignId, ['member' => $member, 'data' => $data]);
+                $log['subscriptions']['skipped']++;
                 continue;
             }
 
             $subscriptionData = [];
 
+            $licensePaid = $this->extractLicensePaid($data);
+
             $subscriptionFields = [
-                'medical_certificate' => $data['certificat_medical'] ?? null,
+                'identity_photo' => $data['identity_photo'] ?? null,
+                'medical_certificate' => $data['medical_certificate'] ?? null,
                 'agree_exit' => $this->extractBoolean($data['agree_exit'] ?? null),
                 'agree_image' => $this->extractBoolean($data['agree_image'] ?? null),
+                'doctor' => $data['doctor'] ?? null,
+                'discipline' => $data['discipline'] ?? null,
+                'license_paid' => $licensePaid,
             ];
 
             $subscriptionData['fields'] = $subscriptionFields;
@@ -134,15 +170,127 @@ class SyncSubscriptionsUseCase implements UseCaseInterface
             try {
                 $this->subscriptionRepository->update($existingSubscription->id, $subscriptionData);
             } catch (\Exception $e) {
-                var_dump($e);
-                $log['skipped']++;
+                $this->watchdogService->error('Failed to update subscription ' . $existingSubscription->id, ['exception' => $e->getMessage()]);
+                $log['subscriptions']['error']++;
                 continue;
             }
 
-            $log['updated']++;
+            $contactLog = $this->syncContacts($existingSubscription, $data);
+            foreach ($contactLog as $key => $value) {
+                $log['contacts'][$key] += $value;
+            }
+
+            $log['subscriptions']['updated']++;
         }
         fclose($handle);
         return $log;
+    }
+
+    private function extractLicensePaid(array $data): bool
+    {
+        if (
+            $this->extractBoolean($data['license_1'])
+            || $this->extractBoolean($data['license_2'])
+            || $this->extractBoolean($data['license_3'])
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    private function syncContacts($existingSubscription, array $data): array
+    {
+        $log = [
+            'created' => 0,
+            'updated' => 0,
+            'deleted' => 0,
+            'skipped' => 0,
+            'error' => 0,
+        ];
+        $oldContacts = $this->contactRepository->find(['subscription_id' => ['eq' => $existingSubscription->id]]);
+        $contacts = $this->extractContacts($data);
+        foreach ($contacts as $contact) {
+            $found = null;
+            // Check if the contact already exists in the old contacts list based on firstname and lastname
+            foreach ($oldContacts as $oldContact) {
+                $oldFirstname = $this->nameHelper->firstname($oldContact->firstname);
+                $oldLastname = $this->nameHelper->lastname($oldContact->lastname);
+                if ($oldFirstname === $contact['firstname'] && $oldLastname === $contact['lastname']) {
+                    $found = $oldContact;
+                    // Remove this contact from the old contacts list to avoid duplicate processing
+                    $oldContacts = array_filter($oldContacts, fn($c) => $c->id !== $oldContact->id);
+                    break;
+                }
+            }
+            if (!$found) {
+                $data = [
+                    'lastname' => $contact['lastname'],
+                    'firstname' => $contact['firstname'],
+                    'phone' => $contact['phone'],
+                    'email' => $contact['email'],
+                    'owner' => $contact['owner'],
+                    'subscription_id' => $existingSubscription->id
+                ];
+                $this->watchdogService->debug('Inserting new contact for subscription ' . $existingSubscription->id, ['contact' => $data]);
+                try {
+                    $this->contactRepository->insert($data);
+                    $log['created']++;
+                } catch (\Exception $e) {
+                    $log['error']++;
+                }
+            } else {
+                $updateData = [];
+
+                if ($oldContact->firstname !== $contact['firstname']) {
+                    $updateData['firstname'] = $contact['firstname'];
+                }
+                if ($oldContact->lastname !== $contact['lastname']) {
+                    $updateData['lastname'] = $contact['lastname'];
+                }
+                if ($oldContact->phone !== $contact['phone']) {
+                    $updateData['phone'] = $contact['phone'];
+                }
+                if ($oldContact->email !== $contact['email']) {
+                    $updateData['email'] = $contact['email'];
+                }
+
+                if (!empty($updateData)) {
+                    try {
+                        $this->contactRepository->update($oldContact->id, $updateData);
+                        $log['updated']++;
+                    } catch (\Exception $e) {
+                        $log['error']++;
+                    }
+                } else {
+                    $log['skipped']++;
+                }
+            }
+        }
+
+        // Delete any old contacts that were not found in the new contacts list
+        foreach ($oldContacts as $oldContact) {
+            $this->watchdogService->debug('Deleting old contact for subscription ' . $existingSubscription->id, ['contact' => $oldContact]);
+            $this->contactRepository->delete($oldContact->id);
+            $log['deleted']++;
+        }
+        return $log;
+    }
+
+    private function extractContacts(array &$data): array
+    {
+        $contacts = [];
+        for ($i = 1; $i <= 2; $i++) {
+            if (!empty($data["legal_guardian_lastName_$i"]) && !empty($data["legal_guardian_firstName_$i"])) {
+                $contacts[] = [
+                    'lastname' => $this->nameHelper->lastname($data["legal_guardian_lastName_$i"]),
+                    'firstname' => $this->nameHelper->firstname($data["legal_guardian_firstName_$i"]),
+                    'phone' => $this->phoneHelper->sanitize($data["legal_guardian_phone_$i"] ?? null),
+                    'email' => $this->emailHelper->sanitize($data["legal_guardian_email_$i"] ?? null),
+                    'owner' => false
+                ];
+            }
+        }
+        return $contacts;
     }
 
     private function extractBoolean(?string $value): bool
