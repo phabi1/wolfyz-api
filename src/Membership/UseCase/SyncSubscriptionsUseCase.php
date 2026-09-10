@@ -236,6 +236,7 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
                     $this->contactRepository->insert($data);
                     $log['created']++;
                 } catch (\Exception $e) {
+                    $this->watchdogService->error('Failed to insert contact for subscription ' . $existingSubscription->id, ['exception' => $e->getMessage()]);
                     $log['error']++;
                 }
             } else {
@@ -259,6 +260,7 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
                         $this->contactRepository->update($oldContact->id, $updateData);
                         $log['updated']++;
                     } catch (\Exception $e) {
+                        $this->watchdogService->error('Failed to update contact for subscription ' . $existingSubscription->id, ['exception' => $e->getMessage()]);
                         $log['error']++;
                     }
                 } else {

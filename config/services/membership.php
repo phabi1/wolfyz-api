@@ -3,7 +3,8 @@ return [
     'wolf-memberships.entity.repository.member' => [
         'class' => \App\Membership\Entity\Repository\MemberEntityRepository::class,
         'arguments' => [
-            '@helper.string'
+            '@helper.string',
+            '@wolf-memberships.helper.member'
         ],
         'tags' => [
             [
@@ -72,13 +73,6 @@ return [
     ],
     'wolf-memberships.dashboard.source_bus' => [
         'class' => \App\Membership\Dashboard\SourceBus::class
-    ],
-    'wolf-memberships.entity.service.member' => [
-        'class' => \App\Membership\Entity\Service\MemberEntityService::class,
-        'arguments' => [
-            '@entity.manager',
-            '@wolf-memberships.helper.member'
-        ]
     ],
     'wolf-memberships.helper.member' => [
         'class' => \App\Membership\Helper\MemberHelper::class,

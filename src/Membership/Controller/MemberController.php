@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 class MemberController extends EntityController
 {
+    protected $entityName = 'wolf-memberships.member';
+
     public function existsAction(Request $request)
     {
         $lastname = $request->query->get('lastname');

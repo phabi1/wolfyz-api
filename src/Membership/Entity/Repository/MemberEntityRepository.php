@@ -4,15 +4,55 @@ namespace App\Membership\Entity\Repository;
 
 use App\Core\Entity\EntityRepository;
 use App\Core\Helper\StringHelper;
+use App\Membership\Helper\MemberHelper;
 
 class MemberEntityRepository extends EntityRepository implements MemberEntityRepositoryInterface
 {
 
     private StringHelper $stringHelper;
+    private MemberHelper $memberHelper;
 
-    public function __construct(StringHelper $stringHelper)
+    public function __construct(StringHelper $stringHelper, MemberHelper $memberHelper)
     {
         $this->stringHelper = $stringHelper;
+        $this->memberHelper = $memberHelper;
+    }
+
+    public function insert($data): \stdClass
+    {
+        $firstname = $data['firstname'] ?? null;
+        $lastname = $data['lastname'] ?? null;
+        $birthdate = $data['birthdate'] ?? null;
+
+        $hash = $this->memberHelper->generateHash($firstname, $lastname, $birthdate);
+        $data['hash'] = $hash;
+        return parent::insert($data);
+    }
+
+
+    public function update($id, $data): \stdClass
+    {
+        if (isset($data['firstname']) || isset($data['lastname']) || isset($data['birthdate'])) {
+            $entity = $this->findById($id);
+            if (!$entity) {
+                throw new \Exception("Member with ID {$id} not found.");
+            }
+            $firstname = $data['firstname'] ?? $entity->firstname;
+            $lastname = $data['lastname'] ?? $entity->lastname;
+            $birthdate = $data['birthdate'] ?? $entity->birthdate;
+
+            $hash = $this->memberHelper->generateHash($firstname, $lastname, $birthdate);
+            $data['hash'] = $hash;
+        }
+
+        try {
+            return parent::update($id, $data);
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                throw new \Exception('Member already exists.');
+            }
+            throw $e;
+        }
     }
 
     public function existsHash(string $hash): int|null

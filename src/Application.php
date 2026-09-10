@@ -69,6 +69,7 @@ class Application
         } catch (MethodNotAllowedException $e) {
             $response = new JsonResponse(['message' => 'Method Not Allowed'], 405);
         } catch (\Exception $e) {
+            $this->container->get('watchdog')->error($e->getMessage(), ['stack' => $e->getTraceAsString()]);
             $response = new JsonResponse(['message' => 'An error occurred', 'exception' => $e->getMessage()], 500);
 
         }
