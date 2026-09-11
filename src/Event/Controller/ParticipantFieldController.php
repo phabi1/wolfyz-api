@@ -5,9 +5,9 @@ namespace App\Event\Controller;
 use App\Core\Mvc\Controller\EntityController;
 use Symfony\Component\HttpFoundation\Request;
 
-class TicketController extends EntityController
+class ParticipantFieldController extends EntityController
 {
-    protected $entityName = 'wolf-events.ticket';
+    protected $entityName = 'wolf-events.participant-field';
 
     protected function buildFilters($request)
     {

@@ -3,6 +3,7 @@
 namespace App\Event\Controller;
 
 use App\Core\Mvc\Controller\EntityController;
+use Symfony\Component\HttpFoundation\Request;
 
 class SessionController extends EntityController
 {
@@ -11,17 +12,17 @@ class SessionController extends EntityController
     protected function buildFilters($request)
     {
         $filters = parent::buildFilters($request);
-        if ($request->get_param('event_id')) {
-            $filters['event_id'] = ['eq' => (int) $request->get_param('event_id')];
+        if ($request->attributes->get('event_id')) {
+            $filters['event_id'] = ['eq' => (int) $request->attributes->get('event_id')];
         }
         return $filters;
     }
 
-    protected function prepareDataFromRequest(array $body, \WP_REST_Request $request)
+    protected function prepareDataFromRequest(array $body, Request $request)
     {
         $data = parent::prepareDataFromRequest($body, $request);
 
-        $data['event_id'] = (int) $request->get_param('event_id');
+        $data['event_id'] = (int) $request->attributes->get('event_id');
         return $data;
     }
 }

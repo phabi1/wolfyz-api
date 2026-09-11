@@ -149,7 +149,7 @@ class EntityRepository implements EntityRepositoryInterface
             foreach ($this->definition['fields'] as $field => $fieldDef) {
                 if (isset($obj[$field])) {
                     $value = $obj[$field];
-                    if ($fieldDef['type'] === Field::TYPE_ARRAY && $value) {
+                    if ($fieldDef['type'] === Field::TYPE_ARRAY) {
                         $value = implode(',', $value);
                     } else if ($fieldDef['type'] === Field::TYPE_JSON) {
                         $value = json_encode($value);

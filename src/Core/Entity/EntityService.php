@@ -404,9 +404,9 @@ class EntityService implements EntityServiceInterface
                     $relatedId = $relatedIds[0] ?? null;
                     $item->$name = isset($relatedItemsById[$relatedId]) ? $relatedItemsById[$relatedId] : null;
                 } else if ($relationType === Relation::TYPE_ONE_TO_MANY) {
-                    $item->{$name} = array_map(function ($relatedId) use ($relatedItemsById) {
+                    $item->{$name} = array_values(array_map(function ($relatedId) use ($relatedItemsById) {
                         return $relatedItemsById[$relatedId] ?? null;
-                    }, $relatedIds);
+                    }, $relatedIds));
                 }
             }
         }

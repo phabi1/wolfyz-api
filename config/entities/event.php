@@ -20,11 +20,11 @@ return [
                 'registration_end' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
                 'participant_nb' => ['type' => Field::TYPE_INTEGER, 'readonly' => true],
                 'participant_max' => ['type' => Field::TYPE_INTEGER, 'nullable' => true],
-                "participant_fields" => ['type' => Field::TYPE_JSON, 'nullable' => true],
             ],
             'relations' => [
                 'sessions' => ['type' => Relation::TYPE_ONE_TO_MANY, 'target_entity' => 'wolf-events.session', 'options' => ['join_field' => 'event_id']],
                 'tickets' => ['type' => Relation::TYPE_ONE_TO_MANY, 'target_entity' => 'wolf-events.ticket', 'options' => ['join_field' => 'event_id']],
+                'participant_fields' => ['type' => Relation::TYPE_ONE_TO_MANY, 'target_entity' => 'wolf-events.participant-field', 'options' => ['join_field' => 'event_id']],
             ]
         ],
     'wolf-events.ticket' =>
@@ -36,9 +36,25 @@ return [
                 'event_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
                 'title' => ['type' => Field::TYPE_STRING, 'required' => true],
                 'amount' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+                'quantity' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+                'member_only' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
                 'participant_nb' => ['type' => Field::TYPE_INTEGER],
                 'participant_max' => ['type' => Field::TYPE_INTEGER, 'nullable' => true],
-                'participant_fields' => ['type' => Field::TYPE_JSON, 'nullable' => true]
+            ],
+            'relations' => []
+        ],
+    'wolf-events.participant-field' =>
+        [
+            'table' => 'wolf_events_participant_field',
+            'fields' => [
+                'id' => ['type' => Field::TYPE_INTEGER],
+                'event_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+                'label' => ['type' => Field::TYPE_STRING, 'required' => true],
+                'type' => ['type' => Field::TYPE_STRING, 'required' => true],
+                'description' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+                'options' => ['type' => Field::TYPE_JSON, 'nullable' => true],
+                'required' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
+                'tickets' => ['type' => Field::TYPE_ARRAY, 'nullable' => true],
             ],
             'relations' => []
         ],
@@ -74,7 +90,6 @@ return [
             'repository' => \App\Event\Entity\Repository\SessionRepository::class,
             'fields' => [
                 'id' => ['type' => Field::TYPE_INTEGER],
-                'title' => ['type' => Field::TYPE_STRING, 'required' => true],
                 'event_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
                 'session_start' => ['type' => Field::TYPE_DATETIME, 'required' => true],
                 'session_end' => ['type' => Field::TYPE_DATETIME, 'required' => true],
