@@ -3,17 +3,12 @@
 namespace App\Event\Controller;
 
 use App\Core\Mvc\Controller\EntityController;
-use App\Event\Entity\Service\ParticipantEntityService;
 use Symfony\Component\HttpFoundation\Request;
 
 class ParticipantController extends EntityController
 {
-    public function __construct(
-        ParticipantEntityService $entityService
-    ) {
-        $this->entityService = $entityService;
-    }
-
+    protected $entityName = 'wolf-events.participant';
+    
     protected function buildFilters($request)
     {
         $filters = parent::buildFilters($request);

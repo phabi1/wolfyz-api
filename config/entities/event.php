@@ -110,6 +110,7 @@ return [
                 'fields' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             ],
             'relations' => [
+                'ticket' => ['type' => Relation::TYPE_ONE_TO_ONE, 'target_entity' => 'wolf-events.ticket', 'options' => ['join_field' => 'ticket_id']],
                 'checkout' => ['type' => Relation::TYPE_ONE_TO_ONE, 'target_entity' => 'wolf-events.checkout', 'options' => ['join_field' => 'checkout_id']]
             ]
         ],
