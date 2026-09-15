@@ -120,6 +120,10 @@ return
             'class' => \App\Core\Security\Strategy\PublicStrategy::class,
             'tags' => [['name' => 'security.strategy', 'value' => 'public']]
         ],
+        'security.strategy.jwt' => [
+            'class' => \App\Core\Security\Strategy\PublicStrategy::class,
+            'tags' => [['name' => 'security.strategy', 'value' => 'jwt']]
+        ],
         'watchdog' => [
             'class' => \App\Core\Watchdog\WatchdogService::class,
             'arguments' => ['@watchdog.storage.db', '!watchdog.levels'],

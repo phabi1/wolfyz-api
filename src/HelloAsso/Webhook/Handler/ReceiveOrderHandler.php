@@ -23,6 +23,7 @@ class ReceiveOrderHandler implements WebhookHandlerInterface
     public function handle(array $payload = []): void
     {
         $externalId = $payload['metadata']['external_id'] ?? '';
-        $this->eventDispatcher->dispatch(OrderSuccessEvent::EVENT, new OrderSuccessEvent($externalId));
+        $payedAt = strtotime($payload['data']['date']);
+        $this->eventDispatcher->dispatch(OrderSuccessEvent::EVENT, new OrderSuccessEvent($externalId, $payedAt));
     }
 }

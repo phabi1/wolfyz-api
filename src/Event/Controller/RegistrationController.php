@@ -2,26 +2,28 @@
 
 namespace App\Event\Controller;
 
-use App\Core\Mvc\Controller\AbstractController;
+use App\Core\Mvc\Controller\ApiController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
-class RegistrationController extends AbstractController
+class RegistrationController extends ApiController
 {
-    public function infoAction($request)
+    public function infoAction(Request $request)
     {
-        $eventId = (int) $request->get_param('event_id');
-        $useCaseBus = $this->getService('use-case-bus');
+        $eventId = (int) $request->attributes->get('id');
 
-        try {
-            $event = $useCaseBus->execute('wolf-events.get_event', ['id' => $eventId]);
-        } catch (\RuntimeException $e) {
-            return new \WP_Error('event_not_found', 'Event not found', ['status' => 404]);
-        }
+        $response = $this->useCaseBus('wolf-events.get_event', ['id' => $eventId]);
+        $event = $response['event'] ?? null;
+        $tickets = $response['tickets'] ?? [];
 
         return [
             'event' => [
                 'id' => $event->id,
                 'title' => $event->title,
                 'participant_fields' => $event->participant_fields ?? [],
+                'participant_max' => $event->participant_max ?? null,
+                'regisration_start' => $event->regisration_start ?? null,
+                'registration_end' => $event->registration_end ?? null,
             ],
             'tickets' => array_map(function ($ticket) {
                 return [
@@ -32,43 +34,62 @@ class RegistrationController extends AbstractController
                     'participant_max' => $ticket->participant_max ?? null,
                     'participant_nb' => $ticket->participant_nb ?? 0,
                 ];
-            }, $event->tickets ?? []),
+            }, $tickets ?? []),
         ];
     }
 
-    public function registerAction($request)
+    public function registerAction(Request $request)
     {
-        $eventId = (int) $request->get_param('event_id');
-        $data = $request->get_json_params();
+        $eventId = (int) $request->attributes->get('id');
+        $data = $request->getPayload()->all();
 
-        $registration = $data['registration'] ?? [];
+        $contact = $data['contact'] ?? [];
 
-        if (empty($registration['firstname']) || empty($registration['lastname']) || empty($registration['email'])) {
-            return new \WP_Error('invalid_data', 'Prénom, nom et email sont obligatoires', ['status' => 400]);
+        $errors = [];
+
+        if (empty($contact['firstname'])) {
+            $errors['contact.firstname'] = 'required';
+        }
+        if (empty($contact['lastname'])) {
+            $errors['contact.lastname'] = 'required';
+        }
+        if (empty($contact['email'])) {
+            $errors['contact.email'] = 'required';
         }
 
-        if (!is_email($registration['email'])) {
-            return new \WP_Error('invalid_email', 'Adresse email invalide', ['status' => 400]);
+        if (!empty($contact['email']) && !filter_var($contact['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['contact.email'] = 'invalid';
         }
 
         $participants = $data['participants'] ?? [];
         if (empty($participants)) {
-            return new \WP_Error('no_participants', 'Aucun participant fourni', ['status' => 400]);
+            $errors['participants'] = 'required';
         }
 
-        foreach ($participants as $participant) {
-            if (empty($participant['firstname']) || empty($participant['lastname'])) {
-                return new \WP_Error('invalid_participant', 'Prénom et nom sont obligatoires pour chaque participant', ['status' => 400]);
+        foreach ($participants as $participantIndex => $participant) {
+            if (empty($participant['firstname'])) {
+                $errors['participants.' . $participantIndex . '.firstname'] = 'required';
             }
+            if (empty($participant['lastname'])) {
+                $errors['participants.' . $participantIndex . '.lastname'] = 'required';
+            }
+
+            if (empty($participant['ticket_id'])) {
+                $errors['participants.' . $participantIndex . '.ticket_id'] = 'required';
+            }
+
         }
 
-        $useCaseBus = $this->getService('use-case-bus');
+        if (!empty($errors)) {
+            return new JsonResponse(['error' => 'invalid_data', 'message' => $errors], 400);
+        }
 
         try {
-            $result = $useCaseBus->execute('wolf-events.register_to_event', [
+            $result = $this->useCaseBus('wolf-events.register_to_event', [
                 'event_id' => $eventId,
-                'registration' => $registration,
+                'contact' => $contact,
                 'participants' => $participants,
+                'message' => $data['message'] ?? null,
             ]);
 
             return [
@@ -77,7 +98,7 @@ class RegistrationController extends AbstractController
                 'payment_url' => $result['payment_url'] ?? null
             ];
         } catch (\Exception $e) {
-            return new \WP_Error('registration_error', $e->getMessage(), ['status' => 400]);
+            return new JsonResponse(['error' => 'registration_error', 'message' => $e->getMessage()], 400);
         }
 
 

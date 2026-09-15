@@ -5,8 +5,6 @@ namespace App\Event\UseCase;
 use App\Core\Entity\EntityManager;
 use App\Core\UseCase\UseCaseInterface;
 use App\Event\Entity\Repository\CheckoutRepository;
-use App\Event\Entity\Repository\ParticipantRepositoryInterface;
-use App\Event\Entity\Repository\EventRepository;
 use App\Event\Model\CheckoutStatus;
 
 class PaidCheckoutUseCase implements UseCaseInterface
@@ -29,7 +27,7 @@ class PaidCheckoutUseCase implements UseCaseInterface
             throw new \Exception("Checkout ID is required");
         }
 
-        $checkout = $this->checkoutRepository->find($checkoutId);
+        $checkout = $this->checkoutRepository->findById($checkoutId);
         if (!$checkout) {
             throw new \Exception("Checkout not found");
         }
@@ -40,6 +38,7 @@ class PaidCheckoutUseCase implements UseCaseInterface
 
         $data = [
             'status' => CheckoutStatus::PAID,
+            'payed_at' => $params['payed_at'] ?? time(),
             'updated_at' => time(),
         ];
 

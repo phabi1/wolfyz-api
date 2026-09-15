@@ -31,16 +31,16 @@ class Checkout
         }
 
         // Build back url based on the current request if not provided
-        $returnUrl = str_replace('http:', 'https:', add_query_arg(array_merge($base_args, ['type' => 'success']), $defaultReturnUrl));
+        $returnUrl = str_replace('http:', 'https:', $this->addQueryParams($defaultReturnUrl, array_merge($base_args, ['type' => 'success'])));
         if (!$order->back_url) {
-            $backUrl = str_replace('http:', 'https:', add_query_arg(array_merge($base_args, ['type' => 'back']), $defaultReturnUrl));
+            $backUrl = str_replace('http:', 'https:', $this->addQueryParams($defaultReturnUrl, array_merge($base_args, ['type' => 'back'])));
         } else {
-            $backUrl = str_replace('http:', 'https:', add_query_arg($base_args, $order->back_url));
+            $backUrl = str_replace('http:', 'https:', $this->addQueryParams($order->back_url, $base_args));
         }
         if (!$order->error_url) {
-            $errorUrl = str_replace('http:', 'https:', add_query_arg(array_merge($base_args, ['type' => 'error']), $defaultReturnUrl));
+            $errorUrl = str_replace('http:', 'https:', $this->addQueryParams($defaultReturnUrl, array_merge($base_args, ['type' => 'error'])));
         } else {
-            $errorUrl = str_replace('http:', 'https:', add_query_arg($base_args, $order->error_url));
+            $errorUrl = str_replace('http:', 'https:', $this->addQueryParams($order->error_url, $base_args));
         }
         
         $payload = [
@@ -75,5 +75,15 @@ class Checkout
         }
 
         return $this->client->request('POST', 'organizations/' . $organizationSlug . '/checkout-intents', $payload);
+    }
+
+    private function addQueryParams($url, $params)
+    {
+        $queryString = http_build_query($params);
+        if (strpos($url, '?') === false) {
+            return $url . '?' . $queryString;
+        } else {
+            return $url . '&' . $queryString;
+        }
     }
 }

@@ -92,7 +92,12 @@ class PrintPeriodUseCase implements UseCaseInterface
         }
 
         foreach ($membersByLessons as $lessonId => $members) {
+            if (empty($members)) {
+                continue;
+            }
             usort($members, function ($a, $b) {
+                if ($a === null) return 1;
+                if ($b === null) return -1;
                 return strcmp($a->lastname . ' ' . $a->firstname, $b->lastname . ' ' . $b->firstname);
             });
             $membersByLessons[$lessonId] = $members;

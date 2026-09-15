@@ -20,10 +20,12 @@ class WebhookController extends AbstractController
 
     public function handleAction(Request $request)
     {
+
         //Check valid ip
-        $valid_ips = ['51.138.206.200']; // Replace with actual IP addresses
         $request_ip = $_SERVER['REMOTE_ADDR'];
-        if (!in_array($request_ip, $valid_ips)) {
+
+        $valid_ips = $this->getService('parameters')->get('helloasso.webhooks.ips'); // Replace with actual IP addresses
+        if (!empty($valid_ips) && !in_array($request_ip, $valid_ips)) {
             return new JsonResponse(['status' => 'forbidden'], 403);
         }
 

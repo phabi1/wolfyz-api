@@ -151,5 +151,16 @@
             ['name' => 'use-case', 'value' => 'wolf-events.get_amount_for_event']
         ],
         'shared' => false
+    ],
+    'wolf-events.order_success_listener' => [
+        'class' => \App\Event\Listener\OrderSuccessListener::class,
+        'arguments' => ['@use-case-bus', '@helper'],
+        'tags' => [
+            [
+                'name' => 'event.listener',
+                'event' => \App\HelloAsso\Event\OrderSuccessEvent::EVENT,
+                'method' => 'onOrderSuccess'
+            ]
+        ]
     ]
 ];

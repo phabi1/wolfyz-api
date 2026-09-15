@@ -17,6 +17,6 @@ class TicketRepository extends EntityRepository implements TicketRepositoryInter
 
         $count = (int) $this->db->value($sql);
 
-        $this->db->update("wolf_events_ticket", ['participant_nb' => $count], ['id' => $ticketId]);
+        $this->db->update("wolf_events_ticket", ['participant_nb' => $count], $this->db->expr()->eq('id', $ticketId));
     }
 }

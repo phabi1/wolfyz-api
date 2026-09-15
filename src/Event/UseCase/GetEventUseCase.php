@@ -32,8 +32,11 @@ class GetEventUseCase implements UseCaseInterface
             throw new \RuntimeException('Event not found');
         }
 
-        $event->tickets = $this->ticketRepository->find(['event_id' => ['eq' => $id]]);
+        $tickets = $this->ticketRepository->find(['event_id' => ['eq' => $id]]);
 
-        return $event;
+        return [
+            'event' => $event,
+            'tickets' => $tickets,
+        ];
     }
 }

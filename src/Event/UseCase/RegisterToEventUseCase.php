@@ -2,6 +2,7 @@
 
 namespace App\Event\UseCase;
 
+use App\Core\Db\Exception\DbException;
 use App\Core\UseCase\UseCaseBus;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
@@ -46,62 +47,87 @@ class RegisterToEventUseCase implements UseCaseInterface
             throw new \Exception("Event not found");
         }
 
+        $tickets = $this->ticketRepository->findByEventId($event->id);
+        $ticketsById = [];
+        foreach ($tickets as $ticket) {
+            $ticketsById[$ticket->id] = $ticket;
+        }
+        $amount = $this->calculateAmount($params['participants'], $ticketsById);
+
         $checkoutData = [
             'event_id' => $event->id,
-            'seller_firstname' => $params['registration']['firstname'],
-            'seller_lastname' => $params['registration']['lastname'],
-            'seller_email' => $params['registration']['email'],
-            'amount' => $params['registration']['amount'] ?? 0,
-            'meta' => $params['registration']['meta'] ?? []
+            'seller_firstname' => $params['contact']['firstname'],
+            'seller_lastname' => $params['contact']['lastname'],
+            'seller_email' => $params['contact']['email'],
+            'amount' => $amount,
+            'meta' => []
         ];
 
-        $checkout = $this->checkoutRepository->insert($checkoutData);
+        try {
+            $checkout = $this->checkoutRepository->insert($checkoutData);
 
-        $ticketUpdates = [];
+            $ticketUpdates = [];
 
-        foreach ($params['participants'] as $participant) {
-            $data = [
-                'firstname' => $participant['firstname'],
-                'lastname' => $participant['lastname'],
-                'fields' => $participant['fields'] ?? [],
-                'event_id' => $event->id,
-                'ticket_id' => $participant['ticket_id'] ?? null,
-                'checkout_id' => $checkout->id
+            foreach ($params['participants'] as $participant) {
+                $data = [
+                    'firstname' => $participant['firstname'],
+                    'lastname' => $participant['lastname'],
+                    'fields' => $participant['fields'] ?? [],
+                    'event_id' => $event->id,
+                    'ticket_id' => $participant['ticket_id'] ?? null,
+                    'checkout_id' => $checkout->id,
+                ];
+
+                $this->participantRepository->insert($data);
+                if (isset($data['ticket_id'])) {
+                    if (!in_array($data['ticket_id'], $ticketUpdates)) {
+                        $ticketUpdates[] = $data['ticket_id'];
+                    }
+                }
+            }
+
+            $this->eventRepository->updateParticipantCount($event->id);
+
+            foreach ($ticketUpdates as $ticketId) {
+                $this->ticketRepository->updateParticipantCount($ticketId);
+            }
+
+            $paymentType = $params['payment_type'] ?? 'helloasso';
+
+            $response = $this->useCaseBus->execute('wolf-billing.create_payment', [
+                'amount' => $checkout->amount,
+                'currency' => 'EUR',
+                'payment_method' => $paymentType,
+                'name' => 'Inscription à l\'événement ' . $event->title,
+                'payer' => [
+                    'first_name' => $checkout->seller_firstname,
+                    'last_name' => $checkout->seller_lastname,
+                    'email' => $checkout->seller_email
+                ],
+                'return_url' => getenv('SITE_EVENT_RETURN_URL'),
+                'metadata' => ['external_id' => 'event:' . $checkout->id]
+            ]);
+
+            return [
+                'success' => true,
+                'payment_url' => $response['redirect_url'] ?? null
             ];
+       } catch (\Exception $e) {
+            throw new \Exception("Error during registration: " . $e->getMessage());
+        }
+    }
 
-            $this->participantRepository->insert($data);
-            if (isset($data['ticket_id'])) {
-                if (!in_array($data['ticket_id'], $ticketUpdates)) {
-                    $ticketUpdates[] = $data['ticket_id'];
+    private function calculateAmount(array $participants, array $tickets): int
+    {
+        $amount = 0;
+        foreach ($participants as $participant) {
+            if (isset($participant['ticket_id'])) {
+                $ticketId = $participant['ticket_id'];
+                if (isset($tickets[$ticketId])) {
+                    $amount += $tickets[$ticketId]->amount;
                 }
             }
         }
-
-        $this->eventRepository->updateParticipantCount($event->id);
-
-        foreach ($ticketUpdates as $ticketId) {
-            $this->ticketRepository->updateParticipantCount($ticketId);
-        }
-
-        $paymentType = $params['payment_type'] ?? 'helloasso';
-
-        $response = $this->useCaseBus->execute('wolf-billing.create_payment', [
-            'amount' => $checkout->amount,
-            'currency' => 'EUR',
-            'payment_method' => $paymentType,
-            'name' => 'Inscription à l\'événement ' . $event->title,
-            'payer' => [
-                'first_name' => $checkout->seller_firstname,
-                'last_name' => $checkout->seller_lastname,
-                'email' => $checkout->seller_email
-            ],
-            'metadata' => ['external_id' => 'event:' . $checkout->id]
-        ]);
-
-        return [
-            'success' => true,
-            'message' => 'Inscription réussie',
-            'payment_url' => $response['redirect_url'] ?? null
-        ];
+        return $amount;
     }
 }

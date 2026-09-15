@@ -15,6 +15,6 @@ class EventRepository extends EntityRepository implements EventRepositoryInterfa
 
         $count = (int) $this->db->value($sql);
 
-        $this->db->update("wolf_events_event", ['participant_nb' => $count], ['id' => $eventId]);
+        $this->db->update("wolf_events_event", ['participant_nb' => $count], $this->db->expr()->eq('id', $eventId));
     }
 }

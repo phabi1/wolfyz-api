@@ -6,6 +6,11 @@ use Fpdf\Fpdf;
 
 class PresenceList
 {
+    private const PAGE_MARGIN = 8;
+    private const DAY_WIDTH = 8;
+    private const HEADER_HEIGHT = 6;
+    private const ROW_HEIGHT = 7;
+
     protected $title = 'Presence List';
 
     protected $headers = [];
@@ -26,11 +31,13 @@ class PresenceList
             ],
             [
                 'data' => 'lastname',
-                'label' => 'Nom'
+                'label' => 'Nom',
+                'width' => 40
             ],
             [
                 'data' => 'firstname',
-                'label' => 'Prénom'
+                'label' => 'Prénom',
+                'width' => 40
             ],
             [
                 'data' => 'birthdate',
@@ -39,16 +46,20 @@ class PresenceList
             ],
             [
                 'data' => 'phone',
-                'label' => 'Téléphone'
+                'label' => 'Téléphone',
+                'width' => 30
             ],
             [
-                'label' => 'Inscription'
+                'label' => 'Inscription',
+                'width' => 30
             ],
             [
-                'label' => 'Médical'
+                'label' => 'Médical',
+                'width' => 30
             ],
             [
-                'label' => 'Autorisation parentale'
+                'label' => 'Autorisation parentale',
+                'width' => 30
             ]
         ];
     }
@@ -79,7 +90,9 @@ class PresenceList
 
     public function render()
     {
-        $pdf = new Fpdf();
+        $pdf = new Fpdf('L', 'mm', 'A4');
+        $pdf->SetMargins(self::PAGE_MARGIN, self::PAGE_MARGIN, self::PAGE_MARGIN);
+        $pdf->SetAutoPageBreak(true, self::PAGE_MARGIN);
 
         foreach ($this->lessons as $lesson) {
 
@@ -93,7 +106,7 @@ class PresenceList
 
             $this->renderHeader($pdf, $lesson);
 
-            $pdf->Ln(10);
+            $pdf->Ln(3);
 
 
             $this->renderMembers($pdf, $headers, $this->members[$lesson->id] ?? []);
@@ -131,7 +144,7 @@ class PresenceList
         $dayHeaders = array_map(function ($date) {
             return [
                 'label' => date('d/m', $date),
-                'width' => 10
+                'width' => self::DAY_WIDTH,
             ];
         }, $days);
 
@@ -140,42 +153,43 @@ class PresenceList
     }
     private function renderHeader(Fpdf $pdf, $lesson)
     {
-        $y = $pdf->GetY();
-
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, $this->decodeString($lesson->title), 0, 1, 'C');
-        $pdf->Ln(1);
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 7, $this->decodeString($lesson->title), 0, 1, 'C');
 
         $subTitle = '' . $this->getDay($lesson->day) . ' - ' . date('H:i', $lesson->lesson_start) . ' à ' . date('H:i', $lesson->lesson_end);
-        $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(0, 10, $this->decodeString($subTitle), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, $this->decodeString($subTitle), 0, 1, 'C');
         $pdf->Ln(1);
 
         $y = $pdf->GetY();
+        $x = self::PAGE_MARGIN;
 
         $pdf->SetLineWidth(0.1);
-        $pdf->SetFontSize(8);
-        $pdf->Rect(10, $y, 30, 10);
-        $pdf->Text(10, $y + 15, $this->decodeString('Presences'));
-        $pdf->Rect(50, $y, 150, 10);
-        $pdf->Text(50, $y + 15, $this->decodeString('Professor'));
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetXY($x, $y);
+        $pdf->Cell(28, 6, $this->decodeString('Présences'), 1, 0, 'C');
+        $pdf->Cell(3, 6, '', 0, 0);
+        $pdf->Cell(120, 6, $this->decodeString('Professeur'), 1, 1, 'L');
         $pdf->SetLineWidth(0);
 
-        $pdf->Ln(15);
+        $pdf->Ln(2);
     }
 
     private function renderMembers(Fpdf $pdf, $headers, $members)
     {
-        foreach ($headers as $index => $header) {
-            $pdf->Cell($header['width'] ?? 30, 10, $this->decodeString($header['label']), 1, 0, 'C');
+        $pdf->SetFont('Arial', 'B', 8);
+        foreach ($headers as $header) {
+            $pdf->Cell($header['width'] ?? 30, self::HEADER_HEIGHT, $this->decodeString($header['label']), 1, 0, 'C');
         }
         $pdf->Ln();
 
         $rows = $this->transformMembersToRows($members, $headers);
 
+        $pdf->SetFont('Arial', '', 10);
         foreach ($rows as $row) {
             foreach ($row as $cell) {
-                $pdf->Cell($cell['width'], 7, $cell['label'], 1, 0, 'C');
+                $align = is_numeric($cell['label']) ? 'C' : 'L';
+                $pdf->Cell($cell['width'], self::ROW_HEIGHT, $cell['label'], 1, 0, $align);
             }
             $pdf->Ln();
         }

@@ -43,9 +43,13 @@ return [
         'options' => [
             'sandbox' => true,
             'auth_storage' => ['type' => 'filesystem', 'options' => ['path' => APP_DIR . '/auth.json']]
+        ],
+        'webhooks' => [
+            'ips' => []
         ]
     ],
     'site_contact_url' => getenv('SITE_CONTACT_URL'),
+    'site_event_return_url' => getenv('SITE_EVENT_RETURN_URL'),
     'site_membership_request_edit_url' => getenv('SITE_MEMBERSHIP_REQUEST_EDIT_URL'),
     'site_membership_request_payment_url' => getenv('SITE_MEMBERSHIP_REQUEST_PAYMENT_URL'),
 ];
