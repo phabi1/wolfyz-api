@@ -39,6 +39,7 @@ return [
                 'member_only' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
                 'participant_nb' => ['type' => Field::TYPE_INTEGER],
                 'participant_max' => ['type' => Field::TYPE_INTEGER, 'nullable' => true],
+                'weight' => ['type' => Field::TYPE_INTEGER, 'default' => 0],
             ],
             'relations' => []
         ],
@@ -54,6 +55,7 @@ return [
                 'options' => ['type' => Field::TYPE_JSON, 'nullable' => true],
                 'required' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
                 'tickets' => ['type' => Field::TYPE_ARRAY, 'nullable' => true],
+                'weight' => ['type' => Field::TYPE_INTEGER, 'default' => 0],
             ],
             'relations' => []
         ],
