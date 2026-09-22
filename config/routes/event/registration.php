@@ -14,7 +14,7 @@ return [
     'event-registration-check-subscription' => [
         'path' => '/event/registration/{id}/check-subscription',
         'controller' => [RegistrationController::class, 'checkSubscription'],
-        'methods' => 'GET',
+        'methods' => 'POST',
         'requirements' => [
             'id' => '\d+'
         ]
