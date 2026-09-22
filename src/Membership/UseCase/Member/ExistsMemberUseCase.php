@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Member;
 
 use App\Core\Entity\EntityManager;
 use App\Core\UseCase\UseCaseInterface;

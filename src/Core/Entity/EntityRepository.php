@@ -77,7 +77,22 @@ class EntityRepository implements EntityRepositoryInterface
         }, $res);
     }
 
-    public function count($filters = []): int
+    /**
+     * Check if a record exists matching the filters
+     * @param array $filters
+     * @return bool Return true if at least one record matches the filters, false otherwise
+     */
+    public function exists(array $filters = []): bool
+    {
+        return $this->count($filters) > 0;
+    }
+
+    /**
+     * Count the number of records matching the filters
+     * @param array $filters
+     * @return int
+     */
+    public function count(array $filters = []): int
     {
         $sql = $this->db->createQuery()
             ->select('COUNT(*)', 'count')

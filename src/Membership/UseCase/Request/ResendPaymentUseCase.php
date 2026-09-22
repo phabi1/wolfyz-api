@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Request;
 
 use App\Core\Config\Parameters;
 use App\Core\Entity\EntityManager;

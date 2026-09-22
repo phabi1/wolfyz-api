@@ -15,11 +15,13 @@ interface EntityRepositoryInterface
 
     public function findByIds(array $ids): array;
 
-    public function find($filters = []): array;
+    public function find(array $filters = []): array;
 
-    public function count($filters = []): int;
+    public function exists(array $filters = []): bool;
 
-    public function findOne($filters = []): \stdClass|null;
+    public function count(array $filters = []): int;
+
+    public function findOne(array $filters = []): \stdClass|null;
 
     public function insert($data): \stdClass;
 

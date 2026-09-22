@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Request;
 
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\UseCase\UseCaseInterface;

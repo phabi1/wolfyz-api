@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Request;
 
 use App\Core\Entity\EntityRepositoryInterface;
+use App\Core\UseCase\UseCaseBus;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 
-class UpdateRequestUseCase implements UseCaseInterface
+class RegisterToCampaignUseCase implements UseCaseInterface
 {
     private EntityRepositoryInterface $campaignRepository;
 
@@ -47,26 +48,15 @@ class UpdateRequestUseCase implements UseCaseInterface
             }
         }
 
-        if (!isset($params['request_id'])) {
-            throw new \InvalidArgumentException('Request ID is required for updating a request.');
-        }
 
-        $request = $this->requestRepository->findById($params['request_id']);
-        if (!$request) {
-            throw new \Exception('Request not found.');
-        }
-
-        if ($request->token !== $params['token']) {
-            throw new \Exception('Invalid token for the request.');
-        }
-
-        $request = $this->requestRepository->update($params['request_id'], [
+        $request = $this->requestRepository->insert([
             'status' => 'pending',
             'firstname' => $params['contact']['firstname'] ?? null,
             'lastname' => $params['contact']['lastname'] ?? null,
             'email' => $params['contact']['email'] ?? null,
             'phone' => $params['contact']['phone'] ?? null,
             'data' => $params['data'] ?? [],
+            'token' => bin2hex(random_bytes(16)), // Generate a random token
             'campaign_id' => $campaignId,
         ]);
 
@@ -74,7 +64,6 @@ class UpdateRequestUseCase implements UseCaseInterface
             'request_id' => $request->id,
             'status' => 'pending',
             'changed_at' => time(),
-            'changed_by' => null,
         ]);
 
         if ($this->sendConfirmationEmail($campaign, $request) === false) {
@@ -84,6 +73,8 @@ class UpdateRequestUseCase implements UseCaseInterface
         if ($this->sendNewRequestEmail($campaign, $request) === false) {
             throw new \Exception('Failed to send new request email.');
         }
+
+       
 
         return [
             'request_id' => $request->id,
@@ -113,7 +104,7 @@ class UpdateRequestUseCase implements UseCaseInterface
             'memberName' => $request->firstname . ' ' . $request->lastname,
             'memberEmail' => $request->email,
             'requestId' => $request->id,
-            'adminUrl' => admin_url('admin.php?page=wolf-membership-requests'),
+            'adminUrl' => admin_url('admin.php?page=wolf-memberships#/campaign/' . $campaign->id . '/requests/' . $request->id),
         ];
         return $this->mailService->sendMail($email, 'wolf-membership:new-request', $context);
     }

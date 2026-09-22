@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Request;
 
 use App\Core\Config\Parameters;
 use App\Core\Entity\EntityRepositoryInterface;
@@ -10,17 +10,15 @@ use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 use App\Membership\Event\RequestStatusChangedEvent;
 
-class MarkAsRejectedRequestUseCase implements UseCaseInterface
+class MarkAsCancelledRequestUseCase implements UseCaseInterface
 {
-    private $campaignRepository;
     private $requestRepository;
-    private EventDispatcher $eventDispatcher;
 
     private EntityRepositoryInterface $requestLogRepository;
 
     private $mailService;
-
-    private $editUrl;
+    private $contactPageUrl;
+    private $eventDispatcher;
 
     public function __construct(
         EntityManager $entityManager,
@@ -28,11 +26,10 @@ class MarkAsRejectedRequestUseCase implements UseCaseInterface
         Parameters $parameters,
         EventDispatcher $eventDispatcher
     ) {
-        $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
-        $this->editUrl = $parameters->get('site_membership_request_edit_url');
+        $this->contactPageUrl = $parameters->get('site_contact_url');
         $this->eventDispatcher = $eventDispatcher;
     }
 
@@ -54,57 +51,44 @@ class MarkAsRejectedRequestUseCase implements UseCaseInterface
             throw new \Exception('Request not found.');
         }
 
-        if ($request->status !== 'pending') {
-            throw new \Exception('Only pending requests can be rejected.');
+        if ($request->status == 'paid') {
+            throw new \Exception('Paid requests cannot be cancelled.');
         }
 
-        $campaign = $this->campaignRepository->findById($campaignId);
-
-        // Update the request status to 'rejected'
+        // Update the request status to 'cancelled'
         $updatedRequest = $this->requestRepository->update($requestId, [
-            'status' => 'rejected',
+            'status' => 'cancelled',
         ]);
 
         $this->requestLogRepository->insert([
             'request_id' => $requestId,
-            'status' => 'rejected',
-            'params' => [
-                'reason' => $params['reason'] ?? '',
-            ],
+            'status' => 'cancelled',
             'changed_at' => time(),
             'changed_by' => $params['user_id'] ?? null,
         ]);
-
-        $editUrl = $this->buildEditUrl($campaign, $request);
 
         // Send an email notification to the user
         try {
             $this->mailService->sendMail(
                 $updatedRequest->email,
-                'membership/request-rejected',
+                'membership/request-cancelled',
                 [
                     'firstname' => $updatedRequest->firstname,
                     'lastname' => $updatedRequest->lastname,
-                    'campaignName' => $campaign->title,
-                    'reason' => $params['reason'] ?? '',
-                    'editUrl' => $editUrl,
+                    'campaign_id' => $campaignId,
+                    'request_id' => $requestId,
                 ]
             );
         } catch (\Exception $e) {
             // Log the error or handle it as needed
-            error_log('Failed to send rejection email: ' . $e->getMessage());
+            error_log('Failed to send cancellation email: ' . $e->getMessage());
         }
 
-        $this->eventDispatcher->dispatch(
+                $this->eventDispatcher->dispatch(
             RequestStatusChangedEvent::EVENT,
-            new RequestStatusChangedEvent($updatedRequest, 'rejected')
+            new RequestStatusChangedEvent($updatedRequest, 'cancelled')
         );
 
         return [];
-    }
-
-    private function buildEditUrl($campaign, $request): string
-    {
-        return $this->editUrl . "?campaign_id={$campaign->id}&request_id={$request->id}&token={$request->token}";
     }
 }

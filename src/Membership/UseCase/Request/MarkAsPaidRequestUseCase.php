@@ -1,36 +1,36 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Request;
 
 use App\Core\Config\Parameters;
 use App\Core\Entity\EntityRepositoryInterface;
-use App\Core\Events\EventDispatcher;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
+use App\Core\Events\EventDispatcher;
 use App\Membership\Event\RequestStatusChangedEvent;
 
-class MarkAsCancelledRequestUseCase implements UseCaseInterface
+class MarkAsPaidRequestUseCase implements UseCaseInterface
 {
+    private $campaignRepository;
+
     private $requestRepository;
 
     private EntityRepositoryInterface $requestLogRepository;
 
     private $mailService;
-    private $contactPageUrl;
-    private $eventDispatcher;
+    private EventDispatcher $eventDispatcher;
 
-    public function __construct(
-        EntityManager $entityManager,
-        Mailer $mailService,
-        Parameters $parameters,
-        EventDispatcher $eventDispatcher
-    ) {
+    private $contactPageUrl;
+
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher)
+    {
+        $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->requestLogRepository = $entityManager->getRepository('wolf-memberships.request_log');
         $this->mailService = $mailService;
-        $this->contactPageUrl = $parameters->get('site_contact_url');
         $this->eventDispatcher = $eventDispatcher;
+        $this->contactPageUrl = $parameters->get('site_contact_url');
     }
 
     public function execute(array $params = []): array
@@ -51,44 +51,58 @@ class MarkAsCancelledRequestUseCase implements UseCaseInterface
             throw new \Exception('Request not found.');
         }
 
-        if ($request->status == 'paid') {
-            throw new \Exception('Paid requests cannot be cancelled.');
+        if ($request->status !== 'approved' && $request->status !== 'rejected') {
+            throw new \Exception('Only approved or rejected requests can be marked as paid.');
         }
 
-        // Update the request status to 'cancelled'
+        $campaign = $this->campaignRepository->findById($campaignId);
+
+        // Update the request status to 'paid'
         $updatedRequest = $this->requestRepository->update($requestId, [
-            'status' => 'cancelled',
+            'status' => 'paid',
         ]);
 
         $this->requestLogRepository->insert([
             'request_id' => $requestId,
-            'status' => 'cancelled',
+            'status' => 'paid',
             'changed_at' => time(),
             'changed_by' => $params['user_id'] ?? null,
         ]);
+
+        // Generate a payment URL (this is just a placeholder, implement your own logic)
+        $contactUrl = $this->buildContactUrl();
 
         // Send an email notification to the user
         try {
             $this->mailService->sendMail(
                 $updatedRequest->email,
-                'membership/request-cancelled',
+                'wolf-membership:request-paid',
                 [
                     'firstname' => $updatedRequest->firstname,
                     'lastname' => $updatedRequest->lastname,
-                    'campaign_id' => $campaignId,
+                    'campaignName' => $campaign->title,
                     'request_id' => $requestId,
+                    'contactUrl' => $contactUrl ?? null,
                 ]
             );
         } catch (\Exception $e) {
             // Log the error or handle it as needed
-            error_log('Failed to send cancellation email: ' . $e->getMessage());
+            error_log('Failed to send paid email: ' . $e->getMessage());
         }
 
-                $this->eventDispatcher->dispatch(
+        $this->eventDispatcher->dispatch(
             RequestStatusChangedEvent::EVENT,
-            new RequestStatusChangedEvent($updatedRequest, 'cancelled')
+            new RequestStatusChangedEvent($updatedRequest, 'paid')
         );
 
         return [];
+    }
+
+    private function buildContactUrl()
+    {
+        if (!$this->contactPageUrl) {
+            throw new \Exception('Contact page URL is not configured.');
+        }
+        return $this->contactPageUrl;
     }
 }

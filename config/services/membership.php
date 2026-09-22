@@ -190,7 +190,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.exists_member' => [
-        'class' => \App\Membership\UseCase\ExistsMemberUseCase::class,
+        'class' => \App\Membership\UseCase\Member\ExistsMemberUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@wolf-memberships.helper.member'
@@ -203,7 +203,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.has_subscription' => [
-        'class' => \App\Membership\UseCase\HasSubscriptionUseCase::class,
+        'class' => \App\Membership\UseCase\Subscription\HasSubscriptionUseCase::class,
         'arguments' => [
             '@entity.manager'
         ],
@@ -215,7 +215,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.get_registration_for_campaign' => [
-        'class' => \App\Membership\UseCase\GetRegistrationUseCase::class,
+        'class' => \App\Membership\UseCase\Request\GetRegistrationUseCase::class,
         'arguments' => [
             '@entity.manager'
         ],
@@ -227,7 +227,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.register_to_campaign' => [
-        'class' => \App\Membership\UseCase\RegisterToCampaignUseCase::class,
+        'class' => \App\Membership\UseCase\Request\RegisterToCampaignUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer'
@@ -240,7 +240,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.update_request' => [
-        'class' => \App\Membership\UseCase\UpdateRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\UpdateRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer'
@@ -253,7 +253,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.calculate_registration_total' => [
-        'class' => \App\Membership\UseCase\CalculateRegistrationTotalUseCase::class,
+        'class' => \App\Membership\UseCase\Request\CalculateRegistrationTotalUseCase::class,
         'arguments' => [
             '@entity.manager',
         ],
@@ -265,7 +265,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.pay' => [
-        'class' => \App\Membership\UseCase\PayUseCase::class,
+        'class' => \App\Membership\UseCase\Request\PayUseCase::class,
         'arguments' => [
             '@use-case-bus'
         ],
@@ -277,7 +277,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.mark_as_approved_request' => [
-        'class' => \App\Membership\UseCase\MarkAsApprovedRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\MarkAsApprovedRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer',
@@ -292,7 +292,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.mark_as_rejected_request' => [
-        'class' => \App\Membership\UseCase\MarkAsRejectedRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\MarkAsRejectedRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer',
@@ -307,7 +307,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.mark_as_paid_request' => [
-        'class' => \App\Membership\UseCase\MarkAsPaidRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\MarkAsPaidRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer',
@@ -322,7 +322,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.mark_as_cancelled_request' => [
-        'class' => \App\Membership\UseCase\MarkAsCancelledRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\MarkAsCancelledRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer',
@@ -337,7 +337,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.get_history_of_request' => [
-        'class' => \App\Membership\UseCase\GetHistoryOfRequestUseCase::class,
+        'class' => \App\Membership\UseCase\Request\GetHistoryOfRequestUseCase::class,
         'arguments' => [
             '@entity.manager'
         ],
@@ -349,7 +349,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.convert_request_to_subscriptions' => [
-        'class' => \App\Membership\UseCase\ConvertRequestToSubscriptionsUseCase::class,
+        'class' => \App\Membership\UseCase\Request\ConvertRequestToSubscriptionsUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@wolf-memberships.helper.member',
@@ -387,7 +387,7 @@ return [
         ]
     ],
     'wolf-memberships.use-case.resend_payment' => [
-        'class' => \App\Membership\UseCase\ResendPaymentUseCase::class,
+        'class' => \App\Membership\UseCase\Request\ResendPaymentUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer'

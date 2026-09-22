@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Membership\UseCase;
+namespace App\Membership\UseCase\Subscription;
 
 use App\Core\Entity\EntityManager;
 use App\Core\UseCase\UseCaseInterface;
@@ -23,15 +23,11 @@ class HasSubscriptionUseCase implements UseCaseInterface
             return false;
         }
 
-        $subscription = $this->subscriptionRepository->findOne([
+        $subscription = $this->subscriptionRepository->exists([
             'member_id' => ['eq' => $memberId],
             'campaign_id' => ['eq' => $campaignId]
         ]);
 
-        if (empty($subscription)) {
-            return false;
-        }
-
-        return true;
+        return $subscription;
     }
 }
