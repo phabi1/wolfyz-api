@@ -228,6 +228,18 @@ class EntityRepository implements EntityRepositoryInterface
                         case 'in':
                             $where[] = $this->db->expr()->in($field, $value);
                             break;
+                        case 'lt':
+                            $where[] = $this->db->expr()->lt([$field, $value], false);
+                            break;
+                        case 'lte':
+                            $where[] = $this->db->expr()->lt([$field, $value], true);
+                            break;
+                        case 'gt':
+                            $where[] = $this->db->expr()->gt([$field, $value], false);
+                            break;
+                        case 'gte':
+                            $where[] = $this->db->expr()->gt([$field, $value], true);
+                            break;
                         default:
                             throw new \Exception("Unsupported operator: {$operator}");
                     }

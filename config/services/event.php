@@ -41,7 +41,7 @@
         'class' => \App\Event\Token\TokenService::class,
     ],
     'wolf-events.use-case.get_event' => [
-        'class' => \App\Event\UseCase\GetEventUseCase::class,
+        'class' => \App\Event\UseCase\Registration\GetEventUseCase::class,
         'arguments' => ['@entity.manager'],
         'tags' => [
             ['name' => 'use-case', 'value' => 'wolf-events.get_event']
@@ -88,8 +88,16 @@
             ]
         ]
     ],
+    'wolf-events.use-case.check_subscription' => [
+        'class' => \App\Event\UseCase\Registration\CheckSubscriptionUseCase::class,
+        'arguments' => ['@use-case-bus'],
+        'tags' => [
+            ['name' => 'use-case', 'value' => 'wolf-events.check_subscription']
+        ],
+        'shared' => false
+    ],
     'wolf-events.use-case.register_to_event' => [
-        'class' => \App\Event\UseCase\RegisterToEventUseCase::class,
+        'class' => \App\Event\UseCase\Registration\RegisterToEventUseCase::class,
         'arguments' => ['@entity.manager', '@use-case-bus'],
         'tags' => [
             ['name' => 'use-case', 'value' => 'wolf-events.register_to_event']

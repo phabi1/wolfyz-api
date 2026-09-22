@@ -202,6 +202,18 @@ return [
             ]
         ]
     ],
+    'wolf-memberships.use-case.has_subscription' => [
+        'class' => \App\Membership\UseCase\HasSubscriptionUseCase::class,
+        'arguments' => [
+            '@entity.manager'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.has_subscription'
+            ]
+        ]
+    ],
     'wolf-memberships.use-case.get_registration_for_campaign' => [
         'class' => \App\Membership\UseCase\GetRegistrationUseCase::class,
         'arguments' => [
@@ -359,6 +371,18 @@ return [
             [
                 'name' => 'use-case',
                 'value' => 'wolf-memberships.update_campaign_settings'
+            ]
+        ]
+    ],
+    'wolf-memberships.use-case.get_current_campaign' => [
+        'class' => \App\Membership\UseCase\Campaign\GetCurrentCampaignUseCase::class,
+        'arguments' => [
+            '@entity.manager'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.get_current_campaign'
             ]
         ]
     ],

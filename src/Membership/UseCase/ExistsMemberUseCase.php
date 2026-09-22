@@ -41,7 +41,7 @@ class ExistsMemberUseCase implements UseCaseInterface
         $member = $exists ? $this->memberRepository->findById($id) : null;
 
         $suggestions = [];
-        if (!$exists && $params['suggestions'] ?? false) {
+        if (!$exists && isset($params['suggestions']) && $params['suggestions'] === true) {
             $suggestions = $this->memberRepository->findSuggestions($lastname, $firstname, $birthdate);
         }
 

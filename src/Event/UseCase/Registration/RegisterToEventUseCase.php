@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Event\UseCase;
+namespace App\Event\UseCase\Registration;
 
-use App\Core\Db\Exception\DbException;
 use App\Core\UseCase\UseCaseBus;
 use App\Core\UseCase\UseCaseInterface;
 use App\Core\Entity\EntityManager;

@@ -28,6 +28,32 @@ class FileService
         }
     }
 
+    public function resolveAvailablePath(string $directory, string $originalFilename): string
+    {
+        $normalizedDirectory = trim($directory, '/');
+        $safeName = basename($originalFilename);
+
+        if ($safeName === '') {
+            $safeName = uniqid('file_', true);
+        }
+
+        $pathInfo = pathinfo($safeName);
+        $name = $pathInfo['filename'] ?? 'file';
+        $extension = isset($pathInfo['extension']) && $pathInfo['extension'] !== ''
+            ? '.' . $pathInfo['extension']
+            : '';
+
+        $candidate = $name . $extension;
+        $index = 1;
+
+        while ($this->fileExists($normalizedDirectory . '/' . $candidate)) {
+            $candidate = sprintf('%s (%d)%s', $name, $index, $extension);
+            $index++;
+        }
+
+        return $normalizedDirectory . '/' . $candidate;
+    }
+
     public function fileExists(string $uri): bool
     {
         $path = $this->getPath($uri);
