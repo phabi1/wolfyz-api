@@ -36,7 +36,6 @@ return [
                 'event_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
                 'title' => ['type' => Field::TYPE_STRING, 'required' => true],
                 'amount' => ['type' => Field::TYPE_INTEGER, 'required' => true],
-                'quantity' => ['type' => Field::TYPE_INTEGER, 'required' => true],
                 'member_only' => ['type' => Field::TYPE_BOOLEAN, 'nullable' => true],
                 'participant_nb' => ['type' => Field::TYPE_INTEGER],
                 'participant_max' => ['type' => Field::TYPE_INTEGER, 'nullable' => true],
