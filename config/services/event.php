@@ -64,6 +64,14 @@
         ],
         'shared' => false
     ],
+    'wolf-events.use-case.copy_event' => [
+        'class' => \App\Event\UseCase\CopyEventUseCase::class,
+        'arguments' => ['@entity.manager'],
+        'tags' => [
+            ['name' => 'use-case', 'value' => 'wolf-events.copy_event']
+        ],
+        'shared' => false
+    ],
     'wolf-events.use-case.create_session_for_event' => [
         'class' => \App\Event\UseCase\CreateSessionForEventUseCase::class,
         'arguments' => [

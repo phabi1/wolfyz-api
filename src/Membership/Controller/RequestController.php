@@ -3,6 +3,8 @@
 namespace App\Membership\Controller;
 
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class RequestController extends AbstractCampaignController
 {
@@ -152,5 +154,75 @@ class RequestController extends AbstractCampaignController
             'success' => true,
             'message' => 'Payment resent successfully.'
         ];
+    }
+
+    public function invoiceAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
+            return [
+                'success' => false,
+                'message' => 'Missing campaign_id or request_id parameter.'
+            ];
+        }
+
+        $invoice = $this->useCaseBus('wolf-memberships.create_invoice_from_request', [
+            'campaign_id' => (int) $campaignId,
+            'request_id' => (int) $requestId,
+            'user_id' => $this->identity()?->getId(),
+        ]);
+
+        return [
+            'success' => true,
+            'item' => $invoice,
+        ];
+    }
+
+    public function sendInvoiceEmailAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        $requestId = $request->attributes->get('request_id');
+        if (!$campaignId || !$requestId) {
+            return [
+                'success' => false,
+                'message' => 'Missing campaign_id or request_id parameter.'
+            ];
+        }
+
+        $this->useCaseBus('wolf-memberships.send_invoice_email_from_request', [
+            'campaign_id' => (int) $campaignId,
+            'request_id' => (int) $requestId,
+            'user_id' => $this->identity()?->getId(),
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Invoice email sent successfully.',
+        ];
+    }
+
+    public function downloadInvoiceAction(Request $request)
+    {
+        $campaignId = (int) $request->attributes->get('campaign_id');
+        $requestId = (int) $request->attributes->get('request_id');
+        $token = (string) $request->query->get('token', '');
+
+        $result = $this->useCaseBus('wolf-memberships.download_invoice_from_request', [
+            'campaign_id' => $campaignId,
+            'request_id' => $requestId,
+            'token' => $token,
+        ]);
+
+        return new Response(
+            $result['content'],
+            200,
+            [
+                'Content-Type' => $result['mime_type'] ?? 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . ($result['filename'] ?? 'facture.pdf') . '"',
+                'Cache-Control' => 'private, no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ]
+        );
     }
 }

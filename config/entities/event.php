@@ -11,7 +11,6 @@ return [
             'repository' => \App\Event\Entity\Repository\EventRepository::class,
             'fields' => [
                 'id' => ['type' => Field::TYPE_INTEGER],
-                'slug' => ['type' => Field::TYPE_STRING, 'unique' => true],
                 'title' => ['type' => Field::TYPE_STRING, 'required' => true],
                 'event_type' => ['type' => Field::TYPE_STRING],
                 'event_start' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],

@@ -48,7 +48,6 @@ class RegisterToCampaignUseCase implements UseCaseInterface
             }
         }
 
-
         $request = $this->requestRepository->insert([
             'status' => 'pending',
             'firstname' => $params['contact']['firstname'] ?? null,
@@ -56,6 +55,7 @@ class RegisterToCampaignUseCase implements UseCaseInterface
             'email' => $params['contact']['email'] ?? null,
             'phone' => $params['contact']['phone'] ?? null,
             'data' => $params['data'] ?? [],
+            'discount_amount' => (int) ($params['discount_amount'] ?? 0),
             'token' => bin2hex(random_bytes(16)), // Generate a random token
             'campaign_id' => $campaignId,
         ]);

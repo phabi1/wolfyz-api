@@ -52,6 +52,7 @@ class RegistrationController extends ApiController
 
         $requestId = $payload['request_id'] ?? null;
         $token = $payload['token'] ?? null;
+        $discountAmount = (int) ($payload['discount'] ?? 0);
 
         if ($requestId) {
             $this->useCaseBus('wolf-memberships.update_request', [
@@ -65,6 +66,7 @@ class RegistrationController extends ApiController
                     'phone' => $payload['data']['contact']['phone'] ?? null,
                 ],
                 'data' => $payload['data'] ?? [],
+                'discount_amount' => $discountAmount,
             ]);
         } else {
             $this->useCaseBus('wolf-memberships.register_to_campaign', [
@@ -76,6 +78,7 @@ class RegistrationController extends ApiController
                     'phone' => $payload['data']['contact']['phone'] ?? null,
                 ],
                 'data' => $payload['data'] ?? [],
+                'discount_amount' => $discountAmount,
             ]);
         }
 

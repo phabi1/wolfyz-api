@@ -4,7 +4,10 @@ return array_merge(
     \App\Core\Rest\Routes::create(
         'membership-request',
         '/membership/campaigns/{campaign_id}/requests',
-        \App\Membership\Controller\RequestController::class
+        \App\Membership\Controller\RequestController::class,
+        [
+            'actions' => \App\Core\Rest\Routes::ROUTE_ITEMS | \App\Core\Rest\Routes::ROUTE_ITEM,
+        ]
     ),
     [
         'membership-request-approve' => [
@@ -59,6 +62,36 @@ return array_merge(
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
+            ]
+        ],
+        'membership-request-invoice' => [
+            'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice',
+            'methods' => 'POST',
+            'controller' => [\App\Membership\Controller\RequestController::class, 'invoice'],
+            'requirements' => [
+                'campaign_id' => '\\d+',
+                'request_id' => '\\d+'
+            ]
+        ],
+        'membership-request-send-invoice-email' => [
+            'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice/send-email',
+            'methods' => 'POST',
+            'controller' => [\App\Membership\Controller\RequestController::class, 'sendInvoiceEmail'],
+            'requirements' => [
+                'campaign_id' => '\\d+',
+                'request_id' => '\\d+'
+            ]
+        ],
+        'membership-request-download-invoice' => [
+            'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice/download',
+            'methods' => 'GET',
+            'controller' => [\App\Membership\Controller\RequestController::class, 'downloadInvoice'],
+            'defaults' => [
+                'auth' => 'public'
+            ],
+            'requirements' => [
+                'campaign_id' => '\\d+',
+                'request_id' => '\\d+'
             ]
         ]
     ]

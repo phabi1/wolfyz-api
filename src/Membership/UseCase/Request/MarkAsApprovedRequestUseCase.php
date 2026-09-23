@@ -8,6 +8,7 @@ use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 use App\Core\Config\Parameters;
 use App\Core\Events\EventDispatcher;
+use App\Core\UseCase\UseCaseBus;
 use App\Membership\Event\RequestStatusChangedEvent;
 
 class MarkAsApprovedRequestUseCase implements UseCaseInterface
@@ -21,8 +22,9 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
     private $mailService;
     private $paymentPageUrl;
     private $eventDispatcher;
+    private UseCaseBus $useCaseBus;
 
-    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher)
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher, UseCaseBus $useCaseBus)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
@@ -30,6 +32,7 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
         $this->mailService = $mailService;
         $this->paymentPageUrl = $parameters->get('site_membership_request_payment_url');
         $this->eventDispatcher = $eventDispatcher;
+        $this->useCaseBus = $useCaseBus;
     }
 
     public function execute(array $params = []): array
@@ -54,11 +57,18 @@ class MarkAsApprovedRequestUseCase implements UseCaseInterface
             throw new \Exception('Only pending or rejected requests can be approved.');
         }
 
+        $pricing = $this->useCaseBus->execute('wolf-memberships.calculate_registration_total', [
+            'campaign_id' => (int) $campaignId,
+            'participants' => $request->data->participants ?? [],
+            'discount_amount' => (int) ($request->discount_amount ?? 0),
+        ]);
+
         $campaign = $this->campaignRepository->findById($campaignId);
 
         // Update the request status to 'approved'
         $updatedRequest = $this->requestRepository->update($requestId, [
             'status' => 'approved',
+            'pricing_breakdown' => $pricing['items'] ?? [],
         ]);
 
         $this->requestLogRepository->insert([

@@ -276,13 +276,55 @@ return [
             ]
         ]
     ],
+    'wolf-memberships.use-case.create_invoice_from_request' => [
+        'class' => \App\Membership\UseCase\Request\CreateInvoiceFromRequestUseCase::class,
+        'arguments' => [
+            '@entity.manager'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.create_invoice_from_request'
+            ]
+        ]
+    ],
+    'wolf-memberships.use-case.send_invoice_email_from_request' => [
+        'class' => \App\Membership\UseCase\Request\SendInvoiceEmailFromRequestUseCase::class,
+        'arguments' => [
+            '@entity.manager',
+            '@use-case-bus',
+            '@mailer',
+            '@parameters'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.send_invoice_email_from_request'
+            ]
+        ]
+    ],
+    'wolf-memberships.use-case.download_invoice_from_request' => [
+        'class' => \App\Membership\UseCase\Request\DownloadInvoiceFromRequestUseCase::class,
+        'arguments' => [
+            '@entity.manager',
+            '@use-case-bus',
+            '@parameters'
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.download_invoice_from_request'
+            ]
+        ]
+    ],
     'wolf-memberships.use-case.mark_as_approved_request' => [
         'class' => \App\Membership\UseCase\Request\MarkAsApprovedRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@mailer',
             '@parameters',
-            '@event.dispatcher'
+            '@event.dispatcher',
+            '@use-case-bus'
         ],
         'tags' => [
             [

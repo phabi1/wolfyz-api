@@ -109,6 +109,8 @@ return [
             'phone' => ['type' => Field::TYPE_PHONE, 'nullable' => true],
             'data' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             'discount_amount' => ['type' => Field::TYPE_INTEGER],
+            'pricing_breakdown' => ['type' => Field::TYPE_JSON, 'nullable' => true],
+            'total_amount' => ['type' => Field::TYPE_INTEGER],
             'token' => ['type' => Field::TYPE_STRING, 'required' => true, 'exclude' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
         ],

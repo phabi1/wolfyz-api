@@ -60,6 +60,10 @@ class UpdateRequestUseCase implements UseCaseInterface
             throw new \Exception('Invalid token for the request.');
         }
 
+        if ($request->status === 'approved' || $request->status === 'paid') {
+            throw new \Exception('Validated requests cannot be updated.');
+        }
+
         $request = $this->requestRepository->update($params['request_id'], [
             'status' => 'pending',
             'firstname' => $params['contact']['firstname'] ?? null,
@@ -67,6 +71,7 @@ class UpdateRequestUseCase implements UseCaseInterface
             'email' => $params['contact']['email'] ?? null,
             'phone' => $params['contact']['phone'] ?? null,
             'data' => $params['data'] ?? [],
+            'discount_amount' => (int) ($params['discount_amount'] ?? ($request->discount_amount ?? 0)),
             'campaign_id' => $campaignId,
         ]);
 
