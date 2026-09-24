@@ -195,12 +195,7 @@ class DownloadInvoiceFromRequestUseCase implements UseCaseInterface
                 $description = is_array($row) ? ($row['name'] ?? 'Ligne') : ($row->name ?? 'Ligne');
                 $amount = is_array($row) ? (int) ($row['amount'] ?? 0) : (int) ($row->amount ?? 0);
 
-                $items[] = [
-                    'description' => (string) $description,
-                    'quantity' => 1,
-                    'unit_cents' => $amount,
-                    'total_cents' => $amount,
-                ];
+                $this->addInvoiceLine($items, (string) $description, $amount);
             }
         }
 
@@ -215,12 +210,7 @@ class DownloadInvoiceFromRequestUseCase implements UseCaseInterface
                 $description = is_array($row) ? ($row['name'] ?? 'Ligne') : ($row->name ?? 'Ligne');
                 $amount = is_array($row) ? (int) ($row['amount'] ?? 0) : (int) ($row->amount ?? 0);
 
-                $items[] = [
-                    'description' => (string) $description,
-                    'quantity' => 1,
-                    'unit_cents' => $amount,
-                    'total_cents' => $amount,
-                ];
+                $this->addInvoiceLine($items, (string) $description, $amount);
             }
         }
 
@@ -235,6 +225,25 @@ class DownloadInvoiceFromRequestUseCase implements UseCaseInterface
         }
 
         return $items;
+    }
+
+    private function addInvoiceLine(array &$items, string $description, int $amount): void
+    {
+        foreach ($items as &$item) {
+            if ($item['description'] === $description && $item['unit_cents'] === $amount) {
+                $item['quantity']++;
+                $item['total_cents'] += $amount;
+                return;
+            }
+        }
+        unset($item);
+
+        $items[] = [
+            'description' => $description,
+            'quantity' => 1,
+            'unit_cents' => $amount,
+            'total_cents' => $amount,
+        ];
     }
 
     private function formatMoney(int $cents, string $currency): string

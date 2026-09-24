@@ -51,11 +51,13 @@ $siteName = 'Roller Les Loups';
                                 Votre facture pour la campagne <strong>"<?php echo $campaignName; ?>"</strong> est
                                 disponible via le lien securise ci-dessous.
                             </p>
-                            <p style="margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: #64748b;">
-                                Si le bouton ne fonctionne pas, utilisez ce lien: <a
-                                    href="<?php echo $invoiceDownloadUrl; ?>"
-                                    style="color: #9e1c1c;"><?php echo $invoiceDownloadUrl; ?></a>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                                Montant:
+                                <strong><?php echo number_format(((int) ($invoiceAmount ?? 0)) / 100, 2, ',', ' '); ?>
+                                    <?php echo $invoiceCurrency ?? 'EUR'; ?></strong><br />
+                                Reference facture: <strong>#<?php echo $requestId ?? ''; ?></strong>
                             </p>
+
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0"
                                 style="margin: 24px auto;">
                                 <tr>
@@ -67,13 +69,11 @@ $siteName = 'Roller Les Loups';
                                     </td>
                                 </tr>
                             </table>
-
-
-                            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #475569;">
-                                Montant:
-                                <strong><?php echo number_format(((int) ($invoiceAmount ?? 0)) / 100, 2, ',', ' '); ?>
-                                    <?php echo $invoiceCurrency ?? 'EUR'; ?></strong><br />
-                                Reference facture: <strong>#<?php echo $requestId ?? ''; ?></strong>
+                            <p style="margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: #64748b;">
+                                Si le bouton ne fonctionne pas, utilisez ce lien: <a
+                                    href="<?php echo $invoiceDownloadUrl; ?>" style="color: #9e1c1c;">
+                                    <?php echo $invoiceDownloadUrl; ?>
+                                </a>
                             </p>
                         </td>
                     </tr>

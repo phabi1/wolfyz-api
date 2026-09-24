@@ -38,15 +38,17 @@ class Mailer
 
         $mail->isSMTP();
         $mail->Host = $this->smtp['host'];
-        $secure = $this->smtp['encryption'];
+        $mail->Port = $this->smtp['port'];                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
+       
         if (!empty($this->smtp['username']) && !empty($this->smtp['password'])) {
+            $mail->SMTPAuth = true;
             $mail->Username = $this->smtp['username'];
             $mail->Password = $this->smtp['password'];
         } else {
             $mail->SMTPAuth = false;
         }
+        $secure = $this->smtp['encryption'];
         $mail->SMTPSecure = $secure;
-        $mail->Port = $this->smtp['port'];                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
         //Recipients
         $mail->setFrom($this->from['email'], $this->from['name']);

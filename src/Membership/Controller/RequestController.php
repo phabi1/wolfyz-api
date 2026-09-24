@@ -219,7 +219,7 @@ class RequestController extends AbstractCampaignController
             200,
             [
                 'Content-Type' => $result['mime_type'] ?? 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . ($result['filename'] ?? 'facture.pdf') . '"',
+                'Content-Disposition' => 'inline; filename="' . ($result['filename'] ?? 'facture.pdf') . '"',
                 'Cache-Control' => 'private, no-store, no-cache, must-revalidate',
                 'Pragma' => 'no-cache',
             ]
