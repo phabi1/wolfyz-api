@@ -55,8 +55,8 @@ class SendInvoiceEmailFromRequestUseCase implements UseCaseInterface
             throw new \Exception('Request does not belong to the provided campaign.');
         }
 
-        if ($request->status !== 'approved' && $request->status !== 'paid') {
-            throw new \Exception('Only approved or paid requests can receive invoice email.');
+        if ($request->status !== 'paid') {
+            throw new \Exception('Only paid requests can receive invoice email.');
         }
 
         $downloadUrl = $this->invoice->url($request);

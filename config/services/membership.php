@@ -288,7 +288,7 @@ return [
             '@entity.manager',
             '@use-case-bus',
             '@mailer',
-            'wolf-memberships.request.invoice'
+            '@wolf-memberships.request.invoice'
         ],
         'tags' => [
             [
