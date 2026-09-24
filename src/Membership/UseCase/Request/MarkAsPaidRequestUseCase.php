@@ -9,6 +9,7 @@ use App\Core\Entity\EntityManager;
 use App\Core\Mail\Mailer;
 use App\Core\Events\EventDispatcher;
 use App\Membership\Event\RequestStatusChangedEvent;
+use App\Membership\Request\Invoice;
 
 class MarkAsPaidRequestUseCase implements UseCaseInterface
 {
@@ -23,7 +24,9 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
 
     private $contactPageUrl;
 
-    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher)
+    private Invoice $invoice;
+
+    public function __construct(EntityManager $entityManager, Mailer $mailService, Parameters $parameters, EventDispatcher $eventDispatcher, Invoice $invoice)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
@@ -31,6 +34,7 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
         $this->mailService = $mailService;
         $this->eventDispatcher = $eventDispatcher;
         $this->contactPageUrl = $parameters->get('site_contact_url');
+        $this->invoice = $invoice;
     }
 
     public function execute(array $params = []): array
@@ -76,12 +80,13 @@ class MarkAsPaidRequestUseCase implements UseCaseInterface
         try {
             $this->mailService->sendMail(
                 $updatedRequest->email,
-                'wolf-membership:request-paid',
+                'membership/request-paid',
                 [
                     'firstname' => $updatedRequest->firstname,
                     'lastname' => $updatedRequest->lastname,
                     'campaignName' => $campaign->title,
                     'request_id' => $requestId,
+                    'invoiceUrl' => $this->invoice->url($updatedRequest),
                     'contactUrl' => $contactUrl ?? null,
                 ]
             );

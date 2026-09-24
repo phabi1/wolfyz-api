@@ -86,6 +86,12 @@ return [
             '@entity.manager',
         ]
     ],
+    'wolf-memberships.request.invoice' => [
+        'class' => \App\Membership\Request\Invoice::class,
+        'arguments' => [
+            '!base_url'
+        ]
+    ],
     'wolf-memberships.dashboard.source.lessons_completude' => [
         'class' => \App\Membership\Dashboard\Source\LessonsCompletude::class,
         'arguments' => [
@@ -276,25 +282,13 @@ return [
             ]
         ]
     ],
-    'wolf-memberships.use-case.create_invoice_from_request' => [
-        'class' => \App\Membership\UseCase\Request\CreateInvoiceFromRequestUseCase::class,
-        'arguments' => [
-            '@entity.manager'
-        ],
-        'tags' => [
-            [
-                'name' => 'use-case',
-                'value' => 'wolf-memberships.create_invoice_from_request'
-            ]
-        ]
-    ],
     'wolf-memberships.use-case.send_invoice_email_from_request' => [
         'class' => \App\Membership\UseCase\Request\SendInvoiceEmailFromRequestUseCase::class,
         'arguments' => [
             '@entity.manager',
             '@use-case-bus',
             '@mailer',
-            '@parameters'
+            'wolf-memberships.request.invoice'
         ],
         'tags' => [
             [
@@ -354,12 +348,13 @@ return [
             '@entity.manager',
             '@mailer',
             '@parameters',
-            '@event.dispatcher'
+            '@event.dispatcher',
+            '@wolf-memberships.request.invoice'
         ],
         'tags' => [
             [
                 'name' => 'use-case',
-                'value' => 'wolf-memberships.mark_as_paid_request'
+                'value' => 'wolf-memberships.paid_request'
             ]
         ]
     ],

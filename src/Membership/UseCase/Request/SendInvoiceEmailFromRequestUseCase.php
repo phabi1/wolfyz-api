@@ -5,9 +5,9 @@ namespace App\Membership\UseCase\Request;
 use App\Core\Entity\EntityManager;
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\Mail\Mailer;
-use App\Core\Config\Parameters;
 use App\Core\UseCase\UseCaseBus;
 use App\Core\UseCase\UseCaseInterface;
+use App\Membership\Request\Invoice;
 
 class SendInvoiceEmailFromRequestUseCase implements UseCaseInterface
 {
@@ -18,16 +18,15 @@ class SendInvoiceEmailFromRequestUseCase implements UseCaseInterface
     private UseCaseBus $useCaseBus;
 
     private Mailer $mailService;
+    private Invoice $invoice;
 
-    private Parameters $parameters;
-
-    public function __construct(EntityManager $entityManager, UseCaseBus $useCaseBus, Mailer $mailService, Parameters $parameters)
+    public function __construct(EntityManager $entityManager, UseCaseBus $useCaseBus, Mailer $mailService, Invoice $invoice)
     {
         $this->campaignRepository = $entityManager->getRepository('wolf-memberships.campaign');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->useCaseBus = $useCaseBus;
         $this->mailService = $mailService;
-        $this->parameters = $parameters;
+        $this->invoice = $invoice;
     }
 
     public function execute(array $params = []): array
@@ -60,8 +59,7 @@ class SendInvoiceEmailFromRequestUseCase implements UseCaseInterface
             throw new \Exception('Only approved or paid requests can receive invoice email.');
         }
 
-        $expires = time() + (7 * 24 * 60 * 60);
-        $downloadUrl = $this->buildDownloadUrl($campaignId, $requestId, $request->token);
+        $downloadUrl = $this->invoice->url($request);
 
         $sent = $this->mailService->sendMail(
             $request->email,
@@ -84,18 +82,6 @@ class SendInvoiceEmailFromRequestUseCase implements UseCaseInterface
         return [
             'request_id' => $request->id,
             'email' => $request->email,
-            'expires_at' => $expires,
         ];
-    }
-
-    private function buildDownloadUrl(int $campaignId, int $requestId, string $token): string
-    {
-        $baseUrl = rtrim((string) $this->parameters->get('base_url', ''), '/');
-        if ($baseUrl === '') {
-            throw new \RuntimeException('BASE_URL must be configured to send invoice download links.');
-        }
-
-        $path = '/membership/campaigns/' . $campaignId . '/requests/' . $requestId . '/invoice/download';
-        return $baseUrl . $path . '?token=' . $token;
     }
 }

@@ -28,10 +28,11 @@ return
         ],
         'view' => [
             'factory' => [\App\Core\Mvc\View\ViewFactory::class, 'create'],
-            'arguments' => ['@view.helpers']
+            'arguments' => ['@view.helper']
         ],
-        'view.helpers' => [
-            'class' => \App\Core\Mvc\View\Helpers::class
+       'view.helper' => [
+            'class' => \App\Core\Di\Locator::class,
+            'arguments' => ['view.helper']
         ],
         'use-case-bus' => [
             'class' => \App\Core\UseCase\UseCaseBus::class
@@ -83,6 +84,10 @@ return
             'class' => \App\Core\Mvc\View\Helper\Route::class,
             'arguments' => ['@router-generator'],
             'tags' => [['name' => 'view.helper', 'value' => 'route']]
+        ],
+        'view.helper.layout' => [
+            'class' => \App\Core\Mvc\View\Helper\Layout::class,
+            'tags' => [['name' => 'view.helper', 'value' => 'layout']]
         ],
         'helper' => [
             'class' => \App\Core\Di\Locator::class,
