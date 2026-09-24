@@ -114,6 +114,7 @@ return [
             'token' => ['type' => Field::TYPE_STRING, 'required' => true, 'exclude' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
         ],
+        'search' => ['lastname', 'firstname', 'email']
     ],
     'wolf-memberships.request_log' => [
         'table' => 'wolf_memberships_request_log',
