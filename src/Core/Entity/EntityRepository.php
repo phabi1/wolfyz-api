@@ -28,33 +28,37 @@ class EntityRepository implements EntityRepositoryInterface
         return $this->definition; // Implementation for fetching the entity definition
     }
 
-    public function findById($id): \stdClass|null
+    public function findById($id, array $options = []): \stdClass|null
     {
-        return $this->findOne(['id' => ['eq' => $id]]); // Implementation for fetching a single item by ID based on the definition
+        return $this->findOne(['id' => ['eq' => $id]], ['fields' => $options['fields'] ?? []]); // Implementation for fetching a single item by ID based on the definition
     }
 
-    public function findByIds(array $ids): array
+    public function findByIds(array $ids, array $options = []): array
     {
-        return $this->find(['id' => ['in' => $ids]]); // Implementation for fetching multiple items by an array of IDs based on the definition
+        return $this->find(['id' => ['in' => $ids]], $options); // Implementation for fetching multiple items by an array of IDs based on the definition
     }
 
-    public function findOne($filters = []): \stdClass|null
+    public function findOne(array $filters = [], array $options = []): \stdClass|null
     {
-        $options = [
-            'limit' => 1
-        ];
+        $options = array_merge(
+            $options,
+            [
+                'limit' => 1,
+            ]
+        );
         $results = $this->find($filters, $options);
         return count($results) > 0 ? $results[0] : null;
     }
 
-    public function find($filters = [], $options = []): array
+    public function find(array $filters = [], array $options = []): array
     {
-        $options = array_merge([
+        $options += [
             'offset' => null,
             'limit' => null,
             'sort' => null,
-            'order' => 'asc'
-        ], $options);
+            'order' => 'asc',
+            'fields' => []
+        ];
 
         $sql = $this->db->createQuery()->from($this->definition['table']);
 
@@ -69,6 +73,12 @@ class EntityRepository implements EntityRepositoryInterface
             $sql->range($options['limit'], $options['offset']);
         } else if ($options['limit'] !== null) {
             $sql->range($options['limit']);
+        }
+
+        if (!empty($options['fields'])) {
+            foreach ($options['fields'] as $field) {
+                $sql->select($field);
+            }
         }
 
         $res = $this->db->rows($sql); // Implementation for fetching a list of items based on the definition
@@ -201,7 +211,7 @@ class EntityRepository implements EntityRepositoryInterface
         if (isset($this->definition['fields'])) {
             $obj = [];
             foreach ($this->definition['fields'] as $field => $fieldDef) {
-                if (isset($data->$field)) {
+                if (property_exists($data, $field)) {
                     $value = $data->$field;
                     if ($fieldDef['type'] === Field::TYPE_ARRAY) {
                         $value = $value ? explode(',', $value) : [];
@@ -220,8 +230,6 @@ class EntityRepository implements EntityRepositoryInterface
                         $value = (bool) $value;
                     }
                     $obj[$field] = $value;
-                } else {
-                    $obj[$field] = null;
                 }
             }
         }

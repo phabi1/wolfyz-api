@@ -11,17 +11,17 @@ interface EntityRepositoryInterface
     public function setDefinition(Definition $definition);
     public function getDefinition(): Definition;
 
-    public function findById($id): \stdClass|null;
+    public function findById($id, array $options = []): \stdClass|null;
 
-    public function findByIds(array $ids): array;
+    public function findByIds(array $ids, array $options = []): array;
 
-    public function find(array $filters = []): array;
+    public function find(array $filters = [], array $options = []): array;
 
     public function exists(array $filters = []): bool;
 
     public function count(array $filters = []): int;
 
-    public function findOne(array $filters = []): \stdClass|null;
+    public function findOne(array $filters = [], array $options = []): \stdClass|null;
 
     public function insert($data): \stdClass;
 

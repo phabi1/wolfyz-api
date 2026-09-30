@@ -269,14 +269,17 @@ class EntityController extends ApiController
         $data = [];
         $definition = $this->getEntityService()->getDefinition();
         foreach ($definition->getFields() as $name => $field) {
-            if (isset($entity->$name)) {
+            if ($field->isHidden()) {
+                continue; // Skip hidden fields
+            }
+            if (property_exists($entity, $name)) {
                 $data[$name] = $entity->$name;
             }
         }
         if ($definition->hasRelations()) {
             foreach ($definition->getRelations() as $relation) {
                 $name = $relation->getName();
-                if (isset($entity->{$name})) {
+                if (property_exists($entity, $name)) {
                     $data[$name] = $entity->{$name};
                 }
             }
@@ -290,9 +293,19 @@ class EntityController extends ApiController
         if (!$fieldsParam) {
             return [];
         }
-        return array_filter(array_map('trim', explode(',', $fieldsParam)), function ($field) {
+        $fields = array_filter(array_map('trim', explode(',', $fieldsParam)), function ($field) {
             return !empty($field);
         });
+        $primaryFields = ['id'];
+        
+        // Check if exists else add primary fields
+        foreach ($primaryFields as $primaryField) {
+            if (!in_array($primaryField, $fields)) {
+                $fields[] = $primaryField;
+            }
+        }
+        
+        return $fields;
     }
 
 }

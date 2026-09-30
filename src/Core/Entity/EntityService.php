@@ -313,13 +313,28 @@ class EntityService implements EntityServiceInterface
         if ($definition->hasRelations()) {
             foreach ($definition->getRelations() as $relation) {
 
+                $relationName = $relation->getName();
+                $bypassRelationFields = $byPassFields;
+                $_relationFields = [];
+                if (!$byPassFields) {
 
-                $name = $relation->getName();
-                if (!$byPassFields && !in_array($name, $fields)) {
-                    continue; // Skip relations not in the requested list
+                    if (in_array($relationName, $fields)) {
+                        $bypassRelationFields = true;
+                    }
+
+                    if (!$bypassRelationFields) {
+                        $_relationFields = array_filter($fields, function ($field) use ($relationName) {
+                            return strpos($field, $relationName . '.') === 0;
+                        });
+                    }
                 }
 
-                $relationFields[] = $name;
+
+                if (empty($_relationFields) && !$bypassRelationFields) {
+                    continue;
+                }
+
+                $relationFields[] = $relationName;
                 $relationDefinition = $this->entityManager->getRepository($relation->getTargetEntity())->getDefinition();
                 $relationAlias = $this->aliasMap->getAlias($relation->getTargetEntity());
 
@@ -329,7 +344,7 @@ class EntityService implements EntityServiceInterface
                     $query->leftJoin($relationDefinition->getTable(), $relationAlias, $relationAlias . '.' . $relation->getOption('join_field') . ' = ' . $alias . '.id');
                 }
 
-                $query->select('GROUP_CONCAT(' . $relationAlias . '.id) as ' . $name . '_ids');
+                $query->select('GROUP_CONCAT(' . $relationAlias . '.id) as ' . $relationName . '_ids');
             }
         }
         $query->groupBy($alias . '.id');
@@ -354,7 +369,7 @@ class EntityService implements EntityServiceInterface
 
         }
 
-        $this->loadRelations($rows, $definition);
+        $this->loadRelations($rows, $definition, $fields);
 
         return $rows; // Implementation for fetching a list of items by their IDs based on the definition
     }
@@ -364,15 +379,42 @@ class EntityService implements EntityServiceInterface
         return $definition->hasRelations();
     }
 
-    private function loadRelations(&$items, Definition $definition)
+    private function loadRelations(&$items, Definition $definition, &$fields)
     {
         if (!$definition->hasRelations()) {
             return;
         }
+
+        $bypassFields = count($fields) === 0;
+
         foreach ($definition->getRelations() as $relation) {
-            $name = $relation->getName();
+
+            $relationName = $relation->getName();
+
+            $bypassRelationFields = $bypassFields;
+            $relationFields = [];
+            if (!$bypassFields) {
+
+                if (in_array($relationName, $fields)) {
+                    $bypassRelationFields = true;
+                }
+
+                if (!$bypassRelationFields) {
+                    foreach ($fields as $field) {
+                        if (strpos($field, $relationName . '.') === 0) {
+                            $relationFields[] = substr($field, strlen($relationName) + 1);
+                        }
+                    }
+                }
+            }
+
+            if (empty($relationFields) && !$bypassRelationFields) {
+                continue;
+            }
+
             $ids = [];
-            $prop = $name . '_ids';
+            $prop = $relationName . '_ids';
+
             $relationType = $relation->getType();
 
             foreach ($items as $item) {
@@ -384,7 +426,7 @@ class EntityService implements EntityServiceInterface
             $ids = array_unique($ids);
 
             if (!empty($ids)) {
-                $relatedItems = $this->entityManager->getRepository($relation->getTargetEntity())->findByIds($ids);
+                $relatedItems = $this->entityManager->getRepository($relation->getTargetEntity())->findByIds($ids, ['fields' => $relationFields]);
 
                 $relatedItemsById = [];
                 foreach ($relatedItems as $relatedItem) {
@@ -402,10 +444,12 @@ class EntityService implements EntityServiceInterface
                 }
                 if ($relationType === Relation::TYPE_ONE_TO_ONE) {
                     $relatedId = $relatedIds[0] ?? null;
-                    $item->$name = isset($relatedItemsById[$relatedId]) ? $relatedItemsById[$relatedId] : null;
+                    $relationEntity = isset($relatedItemsById[$relatedId]) ? $relatedItemsById[$relatedId] : null;
+                    $item->$relationName = $relationEntity;
                 } else if ($relationType === Relation::TYPE_ONE_TO_MANY) {
-                    $item->{$name} = array_values(array_map(function ($relatedId) use ($relatedItemsById) {
-                        return $relatedItemsById[$relatedId] ?? null;
+                    $item->{$relationName} = array_values(array_map(function ($relatedId) use ($relatedItemsById) {
+                        $relationEntity = isset($relatedItemsById[$relatedId]) ? $relatedItemsById[$relatedId] : null;
+                        return $relationEntity;
                     }, $relatedIds));
                 }
             }
