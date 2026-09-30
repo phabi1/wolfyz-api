@@ -28,7 +28,7 @@ class In implements ExprInterface, DbAwareInterface
         if ($this->values instanceof Query) {
             return $this->field . ' IN (' . $this->values->build() . ') ';
         } else {
-            return $this->field . ' IN (' . implode(', ', $this->db->escape($this->values)) . ') ';
+            return $this->field . ' IN (' . implode(', ', array_map([$this->db, 'escape'], $this->values)) . ') ';
         }
     }
 }
