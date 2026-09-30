@@ -2,29 +2,19 @@
 
 namespace App\Core\Security;
 
-use App\Core\Di\Container;
-use App\Core\Di\ContainerAwareInterface;
-use App\Core\Di\ContainerAwareTrait;
 use App\Core\Di\Locator;
 use Symfony\Component\HttpFoundation\Request;
 
-class Firewall implements ContainerAwareInterface
+class Firewall
 {
-    use ContainerAwareTrait;
-
-    private Locator $locator;
+    private Locator $strategies;
 
     private $defaultStrategy = 'api-key';
 
-    public function __construct()
+    public function __construct(Locator $strategies, $defaultStrategy = 'api-key')
     {
-        $this->locator = new Locator('security.strategy');
-    }
-
-    public function setContainer(Container $container)
-    {
-        $this->container = $container;
-        $this->locator->setContainer($container);
+        $this->strategies = $strategies;
+        $this->defaultStrategy = $defaultStrategy;
     }
 
     public function authenticate(Request $request)
@@ -35,7 +25,7 @@ class Firewall implements ContainerAwareInterface
             $auth = $this->defaultStrategy;
         }
 
-        $strategy = $this->locator->get($auth);
+        $strategy = $this->strategies->get($auth);
         return $strategy->authenticate($request);
     }
     

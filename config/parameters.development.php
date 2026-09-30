@@ -25,11 +25,15 @@ return [
         'server' => getenv('MEDIA_SERVER'),
     ],
     'security' => [
-        'strategy' => [
-            'api-key' => [
-                'secret' => getenv('SECURITY_STRATEGY_API_KEY_SECRET')
-            ]
-        ]
+        'firewall' => [
+            'strategies' => [
+                'api-key' => [
+                    'secret' => getenv('SECURITY_FIREWALL_STRATEGY_API_KEY_SECRET')
+                ]
+            ],
+            'default_strategy' => getenv('SECURITY_FIREWALL_DEFAULT_STRATEGY')
+        ],
+
     ],
     'file' => [
         'secret' => getenv('FILE_SECRET')

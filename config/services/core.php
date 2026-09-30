@@ -30,7 +30,7 @@ return
             'factory' => [\App\Core\Mvc\View\ViewFactory::class, 'create'],
             'arguments' => ['@view.helper']
         ],
-       'view.helper' => [
+        'view.helper' => [
             'class' => \App\Core\Di\Locator::class,
             'arguments' => ['view.helper']
         ],
@@ -114,20 +114,28 @@ return
             'tags' => [['name' => 'helper', 'value' => 'name']]
         ],
         'security.firewall' => [
-            'class' => \App\Core\Security\Firewall::class
+            'class' => \App\Core\Security\Firewall::class,
+            'arguments' => [
+                '@security.firewall.strategies',
+                '!security.firewall.default_strategy'
+            ]
         ],
-        'security.strategy.api-key' => [
+        'security.firewall.strategies' => [
+            'class' => \App\Core\Di\Locator::class,
+            'arguments' => ['security.firewall.strategy']
+        ],
+        'security.firewall.strategy.api-key' => [
             'class' => \App\Core\Security\Strategy\ApiKeyStrategy::class,
-            'arguments' => ['!security.strategy.api-key.secret'],
-            'tags' => [['name' => 'security.strategy', 'value' => 'api-key']]
+            'arguments' => ['!security.firewall.strategies.api-key.secret'],
+            'tags' => [['name' => 'security.firewall.strategy', 'value' => 'api-key']]
         ],
-        'security.strategy.public' => [
+        'security.firewall.strategy.public' => [
             'class' => \App\Core\Security\Strategy\PublicStrategy::class,
-            'tags' => [['name' => 'security.strategy', 'value' => 'public']]
+            'tags' => [['name' => 'security.firewall.strategy', 'value' => 'public']]
         ],
-        'security.strategy.jwt' => [
-            'class' => \App\Core\Security\Strategy\PublicStrategy::class,
-            'tags' => [['name' => 'security.strategy', 'value' => 'jwt']]
+        'security.firewall.strategy.jwt' => [
+            'class' => \App\Core\Security\Strategy\JwtStrategy::class,
+            'tags' => [['name' => 'security.firewall.strategy', 'value' => 'jwt']]
         ],
         'watchdog' => [
             'class' => \App\Core\Watchdog\WatchdogService::class,
