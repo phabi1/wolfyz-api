@@ -66,7 +66,7 @@ return [
         ]
     ],
     'wolf-memberships.member' => [
-        'repository' => 'member',
+        'repository' => 'wolf-memberships.member',
         'table' => 'wolf_memberships_member',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
@@ -99,6 +99,7 @@ return [
         ]
     ],
     'wolf-memberships.request' => [
+        'repository' => 'wolf-memberships.request',
         'table' => 'wolf_memberships_request',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
@@ -113,6 +114,8 @@ return [
             'total_amount' => ['type' => Field::TYPE_INTEGER],
             'token' => ['type' => Field::TYPE_STRING, 'required' => true, 'exclude' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+            'created_at' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
+            'updated_at' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
         ],
         'search' => ['lastname', 'firstname', 'email']
     ],

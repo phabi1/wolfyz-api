@@ -9,7 +9,16 @@ return [
         'tags' => [
             [
                 'name' => 'entity.repository',
-                'value' => 'member'
+                'value' => 'wolf-memberships.member'
+            ]
+        ]
+    ],
+    'wolf-memberships.entity.repository.request' => [
+        'class' => \App\Membership\Entity\Repository\RequestEntityRepository::class,
+        'tags' => [
+            [
+                'name' => 'entity.repository',
+                'value' => 'wolf-memberships.request'
             ]
         ]
     ],
@@ -469,6 +478,15 @@ return [
                 'event' => \App\Membership\Event\RequestStatusChangedEvent::EVENT,
                 'method' => 'onStatusChanged'
             ]
+        ]
+    ],
+    'wolf-memberships.request.use-case.count-request-status' => [
+        'class' => \App\Membership\UseCase\Request\CountRequestStatusUseCase::class,
+        'arguments' => [
+            '@entity.manager'
+        ],
+        'tags' => [
+            ['name' => 'use-case', 'value' => 'wolf-memberships.count-request-status']
         ]
     ]
 ];

@@ -93,6 +93,15 @@ return array_merge(
                 'campaign_id' => '\\d+',
                 'request_id' => '\\d+'
             ]
+        ],
+        'membership-request-status-count' => [
+            'path' => '/membership/campaigns/{campaign_id}/requests/status/count',
+            'methods' => 'GET',
+            'controller' => [\App\Membership\Controller\RequestController::class, 'countStatus'],
+            'requirements' => [
+                'campaign_id' => '\\d+',
+                
+            ]
         ]
     ]
 );

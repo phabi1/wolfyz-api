@@ -225,4 +225,17 @@ class RequestController extends AbstractCampaignController
             ]
         );
     }
+
+    public function countStatusAction(Request $request)
+    {
+        $campaignId = (int) $request->attributes->get('campaign_id');
+        $types = [];
+
+        $res = $this->useCaseBus('wolf-memberships.count-request-status', [
+            'campaign_id' => $campaignId,
+            'types' => $types
+        ]);
+
+        return $res;
+    }
 }
