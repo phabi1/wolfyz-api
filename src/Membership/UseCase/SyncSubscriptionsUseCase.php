@@ -151,21 +151,24 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
                 continue;
             }
 
-            $subscriptionData = [];
-
             $licensePaid = $this->extractLicensePaid($data);
 
-            $subscriptionFields = [
+            $subscriptionData = [
                 'identity_photo' => $data['identity_photo'] ?? null,
                 'medical_certificate' => $data['medical_certificate'] ?? null,
                 'agree_exit' => $this->extractBoolean($data['agree_exit'] ?? null),
                 'agree_image' => $this->extractBoolean($data['agree_image'] ?? null),
                 'doctor' => $data['doctor'] ?? null,
-                'discipline' => $data['discipline'] ?? null,
-                'license_paid' => $licensePaid,
             ];
 
-            $subscriptionData['fields'] = $subscriptionFields;
+            // Keep custom fields that are not part of the sync file
+            $subscriptionData['fields'] = array_merge(
+                (array) ($existingSubscription->fields ?? []),
+                [
+                    'discipline' => $data['discipline'] ?? null,
+                    'license_paid' => $licensePaid,
+                ]
+            );
 
             try {
                 $this->subscriptionRepository->update($existingSubscription->id, $subscriptionData);

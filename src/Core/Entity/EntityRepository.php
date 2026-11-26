@@ -172,6 +172,17 @@ class EntityRepository implements EntityRepositoryInterface
         $data = [];
         if (isset($this->definition['fields'])) {
             foreach ($this->definition['fields'] as $field => $fieldDef) {
+                // An explicit null clears a nullable field; it is ignored for
+                // non-nullable fields so partial payloads cannot wipe them
+                if (
+                    is_array($obj)
+                    && array_key_exists($field, $obj)
+                    && $obj[$field] === null
+                    && !empty($fieldDef['nullable'])
+                ) {
+                    $data[$field] = null;
+                    continue;
+                }
                 if (isset($obj[$field])) {
                     $value = $obj[$field];
                     if ($fieldDef['type'] === Field::TYPE_ARRAY) {

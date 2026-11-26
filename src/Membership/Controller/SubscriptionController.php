@@ -123,6 +123,28 @@ class SubscriptionController extends AbstractCampaignController
         ];
     }
 
+    public function licenseTakenAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        if (!$campaignId) {
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
+        }
+
+        $body = $request->getPayload()->all();
+
+        $takenAt = $body['taken_at'] ?? null;
+        if ($takenAt !== null && !is_int($takenAt)) {
+            return new JsonResponse(['error' => 'invalid_taken_at', 'message' => 'taken_at must be a timestamp or null'], 400);
+        }
+
+        return $this->useCaseBus('wolf-memberships.take_license', [
+            'campaign_id' => (int) $campaignId,
+            'ids' => $body['ids'] ?? [],
+            'reverse' => (bool) ($body['reverse'] ?? false),
+            'taken_at' => $takenAt,
+        ]);
+    }
+
     public function countByGenderAction(Request $request)
     {
         $campaignId = $request->attributes->get('campaign_id');

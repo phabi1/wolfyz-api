@@ -240,6 +240,8 @@ class EntityController extends ApiController
             $name = $field->getName();
             if (isset($body[$name])) {
                 $data[$name] = $body[$name];
+            } elseif ($field->isNullable() && array_key_exists($name, $body)) {
+                $data[$name] = null; // explicit null clears a nullable field
             }
         }
         return $data;

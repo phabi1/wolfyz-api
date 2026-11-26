@@ -22,6 +22,11 @@ return array_merge(
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\SubscriptionController::class, 'sync'],
         ],
+        'membership-subscription-license-taken' => [
+            'path' => 'membership/campaigns/{campaign_id}/subscriptions/license-taken',
+            'methods' => 'POST',
+            'controller' => [\App\Membership\Controller\SubscriptionController::class, 'licenseTaken'],
+        ],
         'membership-subscription-count-by-gender' => [
             'path' => 'membership/campaigns/{campaign_id}/subscriptions/count/gender',
             'methods' => 'GET',

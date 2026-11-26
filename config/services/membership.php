@@ -197,6 +197,18 @@ return [
             ]
         ]
     ],
+    'wolf-memberships.use-case.take_license' => [
+        'class' => \App\Membership\UseCase\Subscription\TakeLicenseUseCase::class,
+        'arguments' => [
+            '@entity.manager',
+        ],
+        'tags' => [
+            [
+                'name' => 'use-case',
+                'value' => 'wolf-memberships.take_license'
+            ]
+        ]
+    ],
     'wolf-memberships.use-case.sync_subscriptions' => [
         'class' => \App\Membership\UseCase\SyncSubscriptionsUseCase::class,
         'arguments' => [

@@ -89,18 +89,15 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
 
             $subscribedAt = time();
 
-            $allowedFields = ['medical_cerificate', 'identity_photo', 'health_questionnaire', 'agree_exit', 'agree_photo'];
-            $fields = [];
-            foreach ($allowedFields as $key) {
-                if (isset($data->$key)) {
-                    $fields[$key] = $data->$key;
-                }
-            }
-
             $subscriptionData = [
                 'subscribed_at' => $subscribedAt,
                 'license_type' => $data->license_type,
-                'fields' => $fields,
+                'medical_certificate' => $data->medical_certificate ?? null,
+                'medical_form' => $data->health_questionnaire ?? null,
+                'identity_photo' => $data->identity_photo ?? null,
+                'agree_exit' => isset($data->agree_exit) ? (bool) $data->agree_exit : null,
+                'agree_image' => (bool) ($data->agree_photo ?? false),
+                'fields' => new \stdClass(),
                 'member_id' => $member->id,
                 'request_id' => $request->id,
                 'campaign_id' => $campaignId,
