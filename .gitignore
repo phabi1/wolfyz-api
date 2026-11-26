@@ -4,3 +4,4 @@ uploads/*
 files/*
 .htaccess
 .phpunit.cache
+deploy.log
