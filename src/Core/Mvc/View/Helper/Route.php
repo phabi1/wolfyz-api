@@ -3,7 +3,7 @@
 namespace App\Core\Mvc\View\Helper;
 
 class Route {
-    private$urlGenerator;
+    private $urlGenerator;
 
     public function __construct($urlGenerator) {
         $this->urlGenerator = $urlGenerator;

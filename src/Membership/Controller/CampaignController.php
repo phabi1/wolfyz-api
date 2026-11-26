@@ -12,11 +12,10 @@ class CampaignController extends EntityController
 
     public function updateCampaignSettingsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use-case-bus');
         $campaignId = $request->attributes->get('campaign_id');
         $settings = $request->getPayload()->all();
 
-        $useCaseBus->execute('wolf-memberships.update_campaign_settings', [
+        $this->useCaseBus('wolf-memberships.update_campaign_settings', [
             'campaign_id' => $campaignId,
             'settings' => $settings
         ]);
@@ -26,8 +25,6 @@ class CampaignController extends EntityController
 
     public function currentWheelsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use-case-bus');
-
         $campaignId = $request->attributes->get('campaign_id');
 
         if ($campaignId === null) {
@@ -37,7 +34,7 @@ class CampaignController extends EntityController
         $wheelsStr = $request->query->get('wheels', '') ?? null;
         $wheels = $wheelsStr ? explode(',', $wheelsStr) : [];
 
-        $items = $useCaseBus->execute('wolf-memberships.current_wheels', [
+        $items = $this->useCaseBus('wolf-memberships.current_wheels', [
             'campaign_id' => $campaignId,
             'wheels' => $wheels
         ]);
@@ -47,8 +44,6 @@ class CampaignController extends EntityController
 
     public function nextWheelsAction(Request $request)
     {
-        $useCaseBus = $this->getService('wolf.use-case-bus');
-
         $campaignId = $request->attributes->get('campaign_id');
 
         if ($campaignId === null) {
@@ -58,7 +53,7 @@ class CampaignController extends EntityController
         $wheelsStr = $request->query->get('wheels', '');
         $wheels = $wheelsStr ? explode(',', $wheelsStr) : [];
 
-        $items = $useCaseBus->execute('wolf-memberships.next_wheels', [
+        $items = $this->useCaseBus('wolf-memberships.next_wheels', [
             'campaign_id' => $campaignId,
             'wheels' => $wheels
         ]);

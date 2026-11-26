@@ -1,26 +1,17 @@
 <?php
+namespace App\Core\Kernel;
 
-namespace App;
-
-use App\Core\Security\Firewall;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
-use App\Core\Di;
+use App\Core\Security\Firewall;
 
-class Application
+class HttpKernel extends Base
 {
-    private static $_instance;
-
-    private $container;
-
-    public function bootstrap()
+    public function run()
     {
-        $this->setupDependencyInjection();
-
-        $this->setupConfig();
-
+        $this->bootstrap();
         $request = Request::createFromGlobals();
 
         $referer = $request->headers->get('Origin');
@@ -32,8 +23,10 @@ class Application
             return;
         }
 
-        $urlMatcher = $this->container->get('router-matcher');
-        $context = $this->container->get('router-context');
+        $container = $this->getContainer();
+
+        $urlMatcher = $container->get('router-matcher');
+        $context = $container->get('router-context');
 
         $context->fromRequest($request);
 
@@ -41,11 +34,11 @@ class Application
             $routeParameters = $urlMatcher->match($request->getPathInfo());
 
             $request->attributes->add($routeParameters);
-    
+
             /**
              * @var Firewall
              */
-            $firewall = $this->container->get('security.firewall');
+            $firewall = $container->get('security.firewall');
             $authenticated = $firewall->authenticate($request);
             if (!$authenticated) {
                 $response = new JsonResponse(['message' => 'Unauthorized'], 401);
@@ -59,7 +52,7 @@ class Application
 
             $controllerInstance = new $controller();
 
-            $controllerInstance->setContainer($this->container);
+            $controllerInstance->setContainer($container);
             $response = $controllerInstance->dispatch($action, $request);
 
             $this->withCors($response, $referer);
@@ -69,7 +62,7 @@ class Application
         } catch (MethodNotAllowedException $e) {
             $response = new JsonResponse(['message' => 'Method Not Allowed'], 405);
         } catch (\Exception $e) {
-            $this->container->get('watchdog')->error($e->getMessage(), ['stack' => $e->getTraceAsString()]);
+            $container->get('watchdog')->error($e->getMessage(), ['stack' => $e->getTraceAsString()]);
             $response = new JsonResponse(['message' => 'An error occurred', 'exception' => $e->getMessage()], 500);
 
         }
@@ -77,7 +70,8 @@ class Application
         if (isset($response)) {
             $this->withCors($response, $referer);
         }
-        $response->send();
+        $response?->send();
+
     }
 
     private function withCors($response, $referer)
@@ -85,26 +79,5 @@ class Application
         $response->headers->set('Access-Control-Allow-Origin', $referer);
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key');
-    }
-
-    private function setupDependencyInjection()
-    {
-        $definitions = require APP_DIR . '/config/services.php';
-
-        $container = new Di\Container($definitions);
-        $this->container = $container;
-
-    }
-
-    private function setupConfig()
-    {
-        $env = APP_ENV;
-        $this->container->get('parameters')->load(CONFIG_DIR . '/parameters.' . $env . '.php');
-    }
-
-    public static function run()
-    {
-        self::$_instance = new self();
-        self::$_instance->bootstrap();
     }
 }

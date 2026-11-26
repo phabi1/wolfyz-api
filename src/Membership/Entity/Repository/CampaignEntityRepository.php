@@ -38,6 +38,6 @@ class CampaignEntityRepository extends EntityRepository implements CampaignEntit
 
         $value = 'settings = JSON_SET(settings, ' . implode(', ', $pathsAndValues) . ')';
         $sql = 'UPDATE `' . $handler->prefix . 'wolf_memberships_campaign` SET ' . $value . ' WHERE id = ' . (int) $campaignId;
-        $handler->query($sql);
+        $handler->execute($sql);
     }
 }

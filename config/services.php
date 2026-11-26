@@ -7,4 +7,5 @@ return array_merge(
     require __DIR__ . '/services/event.php',
     require __DIR__ . '/services/helloasso.php',
     require __DIR__ . '/services/membership.php',
+    require __DIR__ . '/commands.php',
 );

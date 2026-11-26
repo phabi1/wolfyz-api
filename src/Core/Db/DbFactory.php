@@ -12,6 +12,10 @@ class DbFactory
     {
         $dbConfig = $parameters->get('db', []);
 
+        if (!isset($dbConfig['dsn'])) {
+            $dbConfig['dsn'] = 'mysql:host=' . ($dbConfig['host'] ?? '127.0.0.1') . ';port=' . ($dbConfig['port'] ?? '3306') . ';dbname=' . ($dbConfig['name'] ?? '');
+        }
+
         $handler = new PdoHandler($dbConfig['dsn'] ?? '', $dbConfig['username'] ?? '', $dbConfig['password'] ?? '');
         $instance = new Client($handler);
         return $instance;

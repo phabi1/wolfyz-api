@@ -2,6 +2,8 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Core\Kernel\HttpKernel;
+
 $env = getenv('APP_ENV');
 if (!$env) {
     $env = 'production';
@@ -12,4 +14,4 @@ define('APP_DIR', __DIR__ . '/..');
 define('CONFIG_DIR', APP_DIR . '/config');
 define('CACHE_DIR', APP_DIR . '/cache');
 
-\App\Application::run();
+(new HttpKernel())->run();

@@ -3,9 +3,11 @@
 return [
     'base_url' => getenv('BASE_URL'),
     'db' => [
-        'dsn' => 'mysql:host=' . getenv('DB_HOST') . ':' . getenv('DB_PORT') . ';dbname=' . getenv('DB_NAME'),
+        'host' => getenv('DB_HOST'),
+        'port' => getenv('DB_PORT'),
         'username' => getenv('DB_USERNAME'),
         'password' => getenv('DB_PASSWORD'),
+        'name' => getenv('DB_NAME'),
         'options' => [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ,
