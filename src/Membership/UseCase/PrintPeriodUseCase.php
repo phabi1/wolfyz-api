@@ -29,6 +29,7 @@ class PrintPeriodUseCase implements UseCaseInterface
      */
     private EntityRepository $memberRepository;
     private EntityRepository $contactRepository;
+    private EntityRepository $subscriptionRepository;
 
 
     public function __construct(EntityManager $entityManager)
@@ -38,6 +39,7 @@ class PrintPeriodUseCase implements UseCaseInterface
         $this->sessionRepository = $entityManager->getRepository('wolf-memberships.session');
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
+        $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
     }
 
     public function execute(array $params = [])
@@ -81,11 +83,29 @@ class PrintPeriodUseCase implements UseCaseInterface
             }
         }
 
+        $subscriptions = [];
+        if (!empty($subscriptionIds)) {
+            foreach ($this->subscriptionRepository->find([
+                'id' => ['in' => array_values($subscriptionIds)],
+            ]) as $subscription) {
+                $subscriptions[$subscription->id] = $subscription;
+            }
+        }
+
         $membersByLessons = [];
 
         foreach ($lessons as $lesson) {
-            $membersByLessons[$lesson->id] = array_map(function ($session) use ($members) {
-                return $members[$session->member_id] ?? null;
+            $membersByLessons[$lesson->id] = array_map(function ($session) use ($members, $subscriptions) {
+                $member = $members[$session->member_id] ?? null;
+                if ($member === null) {
+                    return null;
+                }
+                // Authorizations belong to the subscription, not the member
+                $row = clone $member;
+                $subscription = $subscriptions[$session->subscription_id] ?? null;
+                $row->agree_exit = $subscription->agree_exit ?? null;
+                $row->agree_image = $subscription->agree_image ?? null;
+                return $row;
             }, array_filter($sessions, function ($session) use ($lesson) {
                 return $session->lesson_id === $lesson->id;
             }));

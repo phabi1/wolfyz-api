@@ -10,6 +10,9 @@ class PresenceList
     private const DAY_WIDTH = 8;
     private const HEADER_HEIGHT = 6;
     private const ROW_HEIGHT = 7;
+    private const PAGE_WIDTH = 297; // A4 landscape
+    private const MIN_FONT_SIZE = 5;
+    private const CELL_PADDING = 1; // FPDF default horizontal cell margin
 
     protected $title = 'Presence List';
 
@@ -32,12 +35,14 @@ class PresenceList
             [
                 'data' => 'lastname',
                 'label' => 'Nom',
-                'width' => 40
+                'width' => 40,
+                'flex' => true
             ],
             [
                 'data' => 'firstname',
                 'label' => 'Prénom',
-                'width' => 40
+                'width' => 40,
+                'flex' => true
             ],
             [
                 'data' => 'birthdate',
@@ -47,19 +52,18 @@ class PresenceList
             [
                 'data' => 'phone',
                 'label' => 'Téléphone',
-                'width' => 30
+                'width' => 30,
+                'flex' => true
             ],
             [
-                'label' => 'Inscription',
-                'width' => 30
+                'data' => 'agreements',
+                'label' => ['Sortie', 'Image'],
+                'width' => 24
             ],
             [
                 'label' => 'Médical',
-                'width' => 30
-            ],
-            [
-                'label' => 'Autorisation parentale',
-                'width' => 30
+                'width' => 30,
+                'flex' => true
             ]
         ];
     }
@@ -148,9 +152,42 @@ class PresenceList
             ];
         }, $days);
 
-        return array_merge($firstPart, $dayHeaders, $lastPart);
+        return $this->fitToPage(array_merge($firstPart, $dayHeaders, $lastPart));
 
     }
+    /**
+     * Stretches (or shrinks) the flexible columns, proportionally to their
+     * default width, so that the table spans the whole page width.
+     */
+    private function fitToPage(array $headers)
+    {
+        $available = self::PAGE_WIDTH - 2 * self::PAGE_MARGIN;
+
+        $fixedWidth = 0;
+        $flexWidth = 0;
+        foreach ($headers as $header) {
+            if (!empty($header['flex'])) {
+                $flexWidth += $header['width'];
+            } else {
+                $fixedWidth += $header['width'];
+            }
+        }
+
+        if ($flexWidth <= 0 || $available <= $fixedWidth) {
+            return $headers;
+        }
+
+        $ratio = ($available - $fixedWidth) / $flexWidth;
+        foreach ($headers as &$header) {
+            if (!empty($header['flex'])) {
+                $header['width'] *= $ratio;
+            }
+        }
+        unset($header);
+
+        return $headers;
+    }
+
     private function renderHeader(Fpdf $pdf, $lesson)
     {
         $pdf->SetFont('Arial', 'B', 12);
@@ -179,7 +216,12 @@ class PresenceList
     {
         $pdf->SetFont('Arial', 'B', 8);
         foreach ($headers as $header) {
-            $pdf->Cell($header['width'] ?? 30, self::HEADER_HEIGHT, $this->decodeString($header['label']), 1, 0, 'C');
+            $width = $header['width'] ?? 30;
+            // An array label splits the column into equal sub-columns
+            $labels = (array) $header['label'];
+            foreach ($labels as $label) {
+                $this->fitCell($pdf, $width / count($labels), self::HEADER_HEIGHT, $this->decodeString($label), 'C', 'B', 8);
+            }
         }
         $pdf->Ln();
 
@@ -188,11 +230,43 @@ class PresenceList
         $pdf->SetFont('Arial', '', 10);
         foreach ($rows as $row) {
             foreach ($row as $cell) {
+                if (!empty($cell['symbols'])) {
+                    // ZapfDingbats: '4' = check mark, '8' = cross
+                    $pdf->SetFont('ZapfDingbats', '', 10);
+                    foreach ($cell['symbols'] as $symbol) {
+                        $pdf->Cell($cell['width'] / count($cell['symbols']), self::ROW_HEIGHT, $symbol, 1, 0, 'C');
+                    }
+                    $pdf->SetFont('Arial', '', 10);
+                    continue;
+                }
                 $align = is_numeric($cell['label']) ? 'C' : 'L';
-                $pdf->Cell($cell['width'], self::ROW_HEIGHT, $cell['label'], 1, 0, $align);
+                $this->fitCell($pdf, $cell['width'], self::ROW_HEIGHT, (string) $cell['label'], $align, '', 10);
             }
             $pdf->Ln();
         }
+    }
+
+    /**
+     * Draws a bordered cell, reducing the font size (down to MIN_FONT_SIZE)
+     * when the text is wider than the cell.
+     */
+    private function fitCell(Fpdf $pdf, $width, $height, string $text, string $align, string $style, $size)
+    {
+        $available = $width - 2 * self::CELL_PADDING;
+        $pdf->SetFont('Arial', $style, $size);
+        $textWidth = $pdf->GetStringWidth($text);
+        if ($textWidth > $available && $textWidth > 0) {
+            $pdf->SetFont('Arial', $style, max(self::MIN_FONT_SIZE, floor($size * $available / $textWidth * 10) / 10));
+            // Still too wide at the minimum size: truncate
+            if ($pdf->GetStringWidth($text) > $available) {
+                while ($text !== '' && $pdf->GetStringWidth($text . '.') > $available) {
+                    $text = substr($text, 0, -1);
+                }
+                $text = rtrim($text) . '.';
+            }
+        }
+        $pdf->Cell($width, $height, $text, 1, 0, $align);
+        $pdf->SetFont('Arial', $style, $size);
     }
 
     private function transformMembersToRows(array $members, array $headers)
@@ -210,6 +284,12 @@ class PresenceList
                     switch ($header['data']) {
                         case 'index':
                             $cell['label'] = $index;
+                            break;
+                        case 'agreements':
+                            $cell['symbols'] = [
+                                $this->formatBoolean($member->agree_exit ?? null),
+                                $this->formatBoolean($member->agree_image ?? null),
+                            ];
                             break;
                         default:
                             $value = $member->{$header['data']} ?? '';
@@ -231,6 +311,14 @@ class PresenceList
             $index++;
         }
         return $rows;
+    }
+
+    private function formatBoolean($value)
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN) ? '4' : '8';
     }
 
     private function getDay($day)
