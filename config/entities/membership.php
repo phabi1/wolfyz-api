@@ -9,10 +9,10 @@ return [
         'table' => 'wolf_memberships_campaign',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
-            'title' => ['type' => Field::TYPE_STRING],
+            'title' => ['type' => Field::TYPE_STRING, 'required' => true],
             'description' => ['type' => Field::TYPE_STRING],
-            'start_date' => ['type' => Field::TYPE_DATE],
-            'end_date' => ['type' => Field::TYPE_DATE],
+            'start_date' => ['type' => Field::TYPE_DATE, 'required' => true],
+            'end_date' => ['type' => Field::TYPE_DATE, 'required' => true],
             'registration_start' => ['type' => Field::TYPE_DATE],
             'registration_end' => ['type' => Field::TYPE_DATE],
             'participant_fields' => ['type' => Field::TYPE_JSON, 'nullable' => true],
@@ -24,7 +24,7 @@ return [
         'table' => 'wolf_memberships_period',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
-            'title' => ['type' => Field::TYPE_STRING],
+            'title' => ['type' => Field::TYPE_STRING, 'required' => true],
             'start_date' => ['type' => Field::TYPE_DATE],
             'end_date' => ['type' => Field::TYPE_DATE],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
@@ -142,10 +142,16 @@ return [
     ],
     'wolf-memberships.subscription' => [
         'table' => 'wolf_memberships_subscription',
+        'repository' => 'wolf-memberships.subscription',
         'fields' => [
             'id' => ['type' => Field::TYPE_INTEGER],
             'license_type' => ['type' => Field::TYPE_STRING, 'required' => true],
             'license_taken_at' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
+            'doctor' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'medical_certificate' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'medical_certificate_date' => ['type' => Field::TYPE_DATETIME, 'nullable' => true],
+            'medical_form' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+            'identity_photo' => ['type' => Field::TYPE_STRING, 'nullable' => true],
             'fields' => ['type' => Field::TYPE_JSON, 'nullable' => true],
             'subscribed_at' => ['type' => Field::TYPE_DATETIME, 'required' => true],
             'campaign_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
@@ -179,9 +185,49 @@ return [
                 'options' => [
                     'join_field' => 'subscription_id'
                 ]
+            ],
+            "disciplines" => [
+                'type' => Relation::TYPE_ONE_TO_MANY,
+                'target_entity' => 'wolf-memberships.subscription_discipline',
+                'options' => [
+                    'join_field' => 'subscription_id'
+                ]
             ]
         ],
         'search' => ['member.lastname', 'member.firstname']
+    ],
+    'wolf-memberships.discipline' => [
+        'table' => 'wolf_memberships_discipline',
+        'fields' => [
+            'id' => ['type' => Field::TYPE_INTEGER],
+            'title' => ['type' => Field::TYPE_STRING, 'required' => true],
+            'description' => ['type' => Field::TYPE_STRING, 'nullable' => true],
+        ],
+        'relations' => []
+    ],
+    'wolf-memberships.subscription_discipline' => [
+        'table' => 'wolf_memberships_subscription_discipline',
+        'fields' => [
+            'id' => ['type' => Field::TYPE_INTEGER],
+            'subscription_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+            'discipline_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+        ],
+        'relations' => [
+            'subscription' => [
+                'type' => Relation::TYPE_ONE_TO_ONE,
+                'target_entity' => 'wolf-memberships.subscription',
+                'options' => [
+                    'join_field' => 'subscription_id'
+                ]
+            ],
+            'discipline' => [
+                'type' => Relation::TYPE_ONE_TO_ONE,
+                'target_entity' => 'wolf-memberships.discipline',
+                'options' => [
+                    'join_field' => 'discipline_id'
+                ]
+            ]
+        ]
     ],
     'wolf-memberships.contact' => [
         'table' => 'wolf_memberships_contact',

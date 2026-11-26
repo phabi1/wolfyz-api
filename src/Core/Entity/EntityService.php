@@ -6,6 +6,7 @@ use App\Core\Entity\EntityManager;
 use App\Core\Entity\Definition\Definition;
 use App\Core\Entity\Definition\Relation;
 use App\Core\Db\Query;
+use App\Core\Entity\Exception\EntityValidationException;
 use App\Core\Entity\Search\SearchInterface;
 
 class EntityService implements EntityServiceInterface
@@ -153,12 +154,24 @@ class EntityService implements EntityServiceInterface
 
     public function create($data)
     {
+        $errors = $this->validateData($data);
+        if (count($errors) > 0) {
+            throw new EntityValidationException($this->entityName, $errors);
+        }
         $entity = $this->getRepository()->insert($data); // Implementation for creating a new item based on the definition and provided data
         return $this->loadById($entity->id); // Fetch the created entity with relations loaded
     }
 
     public function update($id, $data)
     {
+        $entity = $this->getRepository()->findById($id);
+        if (!$entity) {
+            throw new Exception\EntityNotFoundException($this->entityName);
+        }
+        $errors = $this->validateData($data, $entity);
+        if (count($errors) > 0) {
+            throw new EntityValidationException($this->entityName, $errors);
+        }
         $this->getRepository()->update($id, $data); // Implementation for updating an existing item by ID based on the definition and provided data
         return $this->loadById($id); // Fetch the updated entity with relations loaded
     }
@@ -270,6 +283,38 @@ class EntityService implements EntityServiceInterface
         } else {
             // Default to equality if condition is not an array
             $query->where($db->expr()->eq($fieldName, $condition));
+        }
+    }
+
+    protected function validateData(array &$data, $entity = null): array
+    {
+        $errors = [];
+
+        $readonlyFields = $this->getDefinition()->getFields()->getReadonyFields();
+        foreach ($readonlyFields as $field) {
+            $fieldName = $field->getName();
+            if (\array_key_exists($fieldName, $data)) {
+                $this->addError($fieldName, 'readonly', 'Field is readonly', $errors);
+            }
+        }
+
+        if (!$entity) {
+            $requiredFields = $this->getDefinition()->getFields()->getRequiredFields();
+            foreach ($requiredFields as $field) {
+                $fieldName = $field->getName();
+                if (\array_key_exists($fieldName, $data) === false) {
+                    $this->addError($fieldName, 'required', 'Field is required', $errors);
+                }
+            }
+        }
+
+        return $errors;
+    }
+
+    protected function addError(string $field, string $error, string $message, array &$errors)
+    {
+        if (\array_key_exists($field, $errors) === false) {
+            $errors[$field][$error] = $message;
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Core\Mvc\Controller;
 
 use App\Core\Entity\Exception\DuplicateEntityException;
+use App\Core\Entity\Exception\EntityValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Core\Entity\EntityService;
@@ -87,8 +88,10 @@ class EntityController extends ApiController
         try {
             $entity = $this->getEntityService()->create($data);
             return $this->serializeItem($entity);
+        } catch (EntityValidationException $e) {
+            return new JsonResponse(['errors' => $e->getErrors()], 400);
         } catch (DuplicateEntityException $e) {
-            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 400);
+            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 409);
         }
     }
 
@@ -108,8 +111,10 @@ class EntityController extends ApiController
         try {
             $entity = $this->getEntityService()->update($id, $data);
             return $this->serializeItem($entity);
+        } catch (EntityValidationException $e) {
+            return new JsonResponse(['errors' => $e->getErrors()], 400);
         } catch (DuplicateEntityException $e) {
-            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 400);
+            return new JsonResponse(['errors' => ['duplicate' => "Entity already exists."]], 409);
         }
     }
 
@@ -242,17 +247,8 @@ class EntityController extends ApiController
 
     protected function validateData(array $data, ?int $id)
     {
-        $definition = $this->getEntityService()->getDefinition();
         $errors = [];
-        if ($id === null) {
-            foreach ($definition->getFields() as $field) {
-                $name = $field->getName();
-                if ($field->isRequired() && !isset($data[$name])) {
-                    $errors[$name] = 'This field is required.';
-                }
-            }
-        }
-
+        
         return $errors;
     }
 

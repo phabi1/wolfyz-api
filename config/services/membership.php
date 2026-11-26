@@ -22,6 +22,18 @@ return [
             ]
         ]
     ],
+    'wolf-memberships.entity.repository.subscription' => [
+        'class' => \App\Membership\Entity\Repository\SubscriptionEntityRepository::class,
+        'arguments' => [
+            '@entity.manager'
+        ],
+        'tags' => [
+            [
+                'name' => 'entity.repository',
+                'value' => 'wolf-memberships.subscription'
+            ]
+        ]
+    ],
     'wolf-memberships.controller.dashboard' => [
         'class' => \App\Membership\Controller\DashboardController::class,
         'arguments' => [
@@ -43,6 +55,12 @@ return [
         'arguments' => [
             '@use-case-bus'
         ]
+    ],
+    'wolf-memberships.controller.discipline' => [
+        'class' => \App\Membership\Controller\DisciplineController::class
+    ],
+    'wolf-memberships.controller.subscription_discipline' => [
+        'class' => \App\Membership\Controller\SubscriptionDisciplineController::class
     ],
     'wolf-memberships.controller.session' => [
         'class' => \App\Membership\Controller\SessionController::class
@@ -166,10 +184,11 @@ return [
         ]
     ],
     'wolf-memberships.use-case.export_subscriptions' => [
-        'class' => \App\Membership\UseCase\ExportSubscriptionsUseCase::class,
+        'class' => \App\Membership\UseCase\Subscription\ExportSubscriptionsUseCase::class,
         'arguments' => [
             '@entity.manager',
-            '@wolf-memberships.helper.member'
+            '@helper',
+            '@translator'
         ],
         'tags' => [
             [

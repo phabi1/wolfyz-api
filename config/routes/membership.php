@@ -6,6 +6,8 @@ return array_merge(
     require __DIR__ . '/membership/request.php',
     require __DIR__ . '/membership/contact.php',
     require __DIR__ . '/membership/subscription.php',
+    require __DIR__ . '/membership/discipline.php',
+    require __DIR__ . '/membership/subscription-discipline.php',
     require __DIR__ . '/membership/period.php',
     require __DIR__ . '/membership/lesson.php',
     require __DIR__ . '/membership/session.php',

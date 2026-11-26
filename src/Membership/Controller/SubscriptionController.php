@@ -3,6 +3,9 @@
 namespace App\Membership\Controller;
 
 use App\Core\UseCase\UseCaseBus;
+use App\Membership\Entity\Service\SubscriptionEntityService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -10,6 +13,11 @@ class SubscriptionController extends AbstractCampaignController
 {
 
     protected $entityName = 'wolf-memberships.subscription';
+
+    protected function buildEntityService()
+    {
+        return new SubscriptionEntityService($this->getService('entity.manager'));
+    }
 
     public function importAction($request)
     {
@@ -49,20 +57,38 @@ class SubscriptionController extends AbstractCampaignController
             return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
         }
 
-        $log = $this->useCaseBus('wolf-memberships.export_subscriptions', [
-            'campaign_id' => $campaignId
-        ]);
+        $filters = $request->query->get('filters');
+        $reverse = $request->query->get('reverse');
+        $ids = $request->query->has('ids') ? explode(',', $request->query->get('ids')) : [];
 
-        if (isset($log['error'])) {
-            return new JsonResponse(['error' => 'export_failed', 'message' => $log['error']], 500);
+        $params = [
+            'campaign_id' => $campaignId,
+            'filters' => $filters ?? [],
+            'reverse' => $reverse ?? false,
+            'ids' => $ids ?? []
+        ];
+
+        if ($request->query->has('format')) {
+            $params['format'] = $request->query->get('format');
         }
 
-        // Serve the file for download
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="subscriptions_export.csv"');
-        readfile($log['file_url']);
-        unlink($log['file_url']); // Clean up the temporary file
-        exit;
+        $res = $this->useCaseBus('wolf-memberships.export_subscriptions', $params);
+
+        if (isset($res['error'])) {
+            return new JsonResponse(['error' => 'export_failed', 'message' => $res['error']], 500);
+        }
+
+        $contentType = match ($res['format']) {
+            'csv' => 'text/csv',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            default => throw new \UnexpectedValueException('Unsupported export format: ' . $res['format']),
+        };
+
+        $response = new BinaryFileResponse($res['file_url'], 200, ['Content-Type' => $contentType], false);
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, 'subscriptions_export.' . $res['format']);
+        $response->deleteFileAfterSend();
+
+        return $response;
     }
 
     public function syncAction(Request $request)
@@ -95,5 +121,33 @@ class SubscriptionController extends AbstractCampaignController
             'success' => true,
             'log' => $log
         ];
+    }
+
+    public function countByGenderAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        if (!$campaignId) {
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
+        }
+
+        $repository = $this->getService('entity.manager')->getRepository('wolf-memberships.subscription');
+        $countByGender = $repository->countByGender($campaignId);
+
+        return new JsonResponse($countByGender);
+    }
+
+    public function countByLicenseTypeAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        if (!$campaignId) {
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
+        }
+
+        $licenseTypes = $request->query->get('license_types', []);
+
+        $repository = $this->getService('entity.manager')->getRepository('wolf-memberships.subscription');
+        $countByLicenseType = $repository->countByLicenseType($campaignId, $licenseTypes);
+
+        return new JsonResponse($countByLicenseType);
     }
 }

@@ -251,6 +251,9 @@ class EntityRepository implements EntityRepositoryInterface
                         case 'in':
                             $where[] = $this->db->expr()->in($field, $value);
                             break;
+                        case 'not_in':
+                            $where[] = $this->db->expr()->notIn($field, $value);
+                            break;
                         case 'lt':
                             $where[] = $this->db->expr()->lt([$field, $value], false);
                             break;

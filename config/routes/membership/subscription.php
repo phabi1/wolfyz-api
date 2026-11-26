@@ -22,5 +22,15 @@ return array_merge(
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\SubscriptionController::class, 'sync'],
         ],
+        'membership-subscription-count-by-gender' => [
+            'path' => 'membership/campaigns/{campaign_id}/subscriptions/count/gender',
+            'methods' => 'GET',
+            'controller' => [\App\Membership\Controller\SubscriptionController::class, 'countByGender'],
+        ],
+        'membership-subscription-count-by-license-type' => [
+            'path' => 'membership/campaigns/{campaign_id}/subscriptions/count/license-type',
+            'methods' => 'GET',
+            'controller' => [\App\Membership\Controller\SubscriptionController::class, 'countByLicenseType'],
+        ],
     ]
 );

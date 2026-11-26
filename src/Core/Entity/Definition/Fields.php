@@ -11,6 +11,28 @@ class Fields implements \ArrayAccess, \IteratorAggregate
         return $this->fields;
     }
 
+    public function getRequiredFields()
+    {
+        $fields = [];
+        foreach ($this->fields as $field) {
+            if ($field->isRequired()) {
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
+
+    public function getReadonyFields()
+    {
+        $fields = [];
+        foreach ($this->fields as $field) {
+            if ($field->isReadonly()) {
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
+
     public function get($name): ?Field
     {
         return $this->fields[$name] ?? null;
@@ -51,7 +73,7 @@ class Fields implements \ArrayAccess, \IteratorAggregate
         $this->remove($offset);
     }
 
-        public function getIterator(): \Traversable
+    public function getIterator(): \Traversable
     {
         return new \ArrayIterator($this->fields);
     }
