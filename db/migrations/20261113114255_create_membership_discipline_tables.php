@@ -19,7 +19,15 @@ final class CreateMembershipDisciplineTables extends AbstractMigration
      */
     public function change(): void
     {
-        $this->table('wolf_memberships_subscription')->changeColumn('id', 'integer', ['null' => false, 'signed' => false])->update();
+        // subscription.id is referenced by other foreign keys (contacts...) and
+        // cannot be altered: the pivot column follows its signedness instead
+        $subscriptionIdSigned = true;
+        foreach ($this->table('wolf_memberships_subscription')->getColumns() as $column) {
+            if ($column->getName() === 'id') {
+                $subscriptionIdSigned = $column->isSigned();
+                break;
+            }
+        }
 
         $this->table('wolf_memberships_discipline')
             ->addColumn('title', 'string', ['limit' => 255])
@@ -27,7 +35,7 @@ final class CreateMembershipDisciplineTables extends AbstractMigration
             ->create();
 
         $this->table('wolf_memberships_subscription_discipline')
-            ->addColumn('subscription_id', 'integer', ['null' => false, 'signed' => false])
+            ->addColumn('subscription_id', 'integer', ['null' => false, 'signed' => $subscriptionIdSigned])
             ->addColumn('discipline_id', 'integer', ['null' => false, 'signed' => false])
             ->addIndex(['subscription_id', 'discipline_id'], ['unique' => true])
             ->addForeignKey('subscription_id', 'wolf_memberships_subscription', 'id', ['delete' => 'CASCADE', 'update' => 'NO_ACTION'])
