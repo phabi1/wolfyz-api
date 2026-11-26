@@ -46,7 +46,37 @@ class SubscriptionEntityRepository extends EntityRepository implements Subscript
         return $countByGender;
     }
 
-        public function countByLicenseType($campaignId, array $licenseTypes): array
+    public function countByAge($campaignId, \DateTimeInterface $referenceDate): array
+    {
+        $query = $this->db->createQuery()
+            ->from($this->definition['table'], 'a')
+            ->innerJoin($this->entityManager->getEntityDefinition()->get('wolf-memberships.member')->getTable(), 'm', 'm.id = a.member_id')
+            ->select('m.birthdate')
+            ->select('COUNT(a.id)', 'member_count')
+            ->where($this->db->expr()->eq('a.campaign_id', $campaignId))
+            ->groupBy('m.birthdate');
+
+        $reference = \DateTimeImmutable::createFromInterface($referenceDate)->setTime(0, 0);
+
+        $ages = [];
+        $unknown = 0;
+        foreach ($this->db->rows($query) as $row) {
+            $count = (int) $row->member_count;
+            $birthdate = $row->birthdate ? \DateTimeImmutable::createFromFormat('!Y-m-d', substr($row->birthdate, 0, 10)) : false;
+            // Missing, invalid or future birthdates cannot give an age
+            if (!$birthdate || $birthdate > $reference) {
+                $unknown += $count;
+                continue;
+            }
+            $age = $birthdate->diff($reference)->y;
+            $ages[$age] = ($ages[$age] ?? 0) + $count;
+        }
+        ksort($ages);
+
+        return ['ages' => $ages, 'unknown' => $unknown];
+    }
+
+    public function countByLicenseType($campaignId, array $licenseTypes): array
     {
         $query = $this->db->createQuery()
             ->from($this->definition['table'], 'a')

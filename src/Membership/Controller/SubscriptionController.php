@@ -158,6 +158,33 @@ class SubscriptionController extends AbstractCampaignController
         return new JsonResponse($countByGender);
     }
 
+    public function countByAgeAction(Request $request)
+    {
+        $campaignId = $request->attributes->get('campaign_id');
+        if (!$campaignId) {
+            return new JsonResponse(['error' => 'campaign_id_required', 'message' => 'Campaign ID parameter is required'], 400);
+        }
+
+        $entityManager = $this->getService('entity.manager');
+        $campaign = $entityManager->getRepository('wolf-memberships.campaign')->findById($campaignId);
+        if (!$campaign) {
+            return new JsonResponse(['error' => 'campaign_not_found', 'message' => 'Campaign not found'], 404);
+        }
+
+        // Ages are computed at the start of the campaign (season), or today without a start date
+        $referenceDate = $campaign->start_date
+            ? (new \DateTimeImmutable())->setTimestamp((int) $campaign->start_date)
+            : new \DateTimeImmutable();
+
+        $result = $entityManager->getRepository('wolf-memberships.subscription')->countByAge($campaignId, $referenceDate);
+
+        return new JsonResponse([
+            'reference_date' => $referenceDate->format('Y-m-d'),
+            'ages' => (object) $result['ages'],
+            'unknown' => $result['unknown'],
+        ]);
+    }
+
     public function countByLicenseTypeAction(Request $request)
     {
         $campaignId = $request->attributes->get('campaign_id');

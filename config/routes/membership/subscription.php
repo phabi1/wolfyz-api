@@ -32,6 +32,11 @@ return array_merge(
             'methods' => 'GET',
             'controller' => [\App\Membership\Controller\SubscriptionController::class, 'countByGender'],
         ],
+        'membership-subscription-count-by-age' => [
+            'path' => 'membership/campaigns/{campaign_id}/subscriptions/count/age',
+            'methods' => 'GET',
+            'controller' => [\App\Membership\Controller\SubscriptionController::class, 'countByAge'],
+        ],
         'membership-subscription-count-by-license-type' => [
             'path' => 'membership/campaigns/{campaign_id}/subscriptions/count/license-type',
             'methods' => 'GET',
