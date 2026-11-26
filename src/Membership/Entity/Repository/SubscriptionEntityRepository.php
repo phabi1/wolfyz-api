@@ -4,14 +4,53 @@ namespace App\Membership\Entity\Repository;
 
 use App\Core\Entity\EntityRepository;
 use App\Core\Entity\EntityManager;
+use App\Membership\Model\LicenseType;
 
 class SubscriptionEntityRepository extends EntityRepository implements SubscriptionEntityRepositoryInterface
 {
     private EntityManager $entityManager;
 
+    /**
+     * Data that only applies to a competition license
+     */
+    public const COMPETITION_ONLY_FIELDS = [
+        'medical_certificate',
+        'medical_certificate_date',
+        'doctor',
+        'identity_photo',
+    ];
+
     public function __construct(EntityManager $entityManager)
     {
         $this->entityManager = $entityManager;
+    }
+
+    public function insert($obj): \stdClass
+    {
+        $obj = (array) $obj;
+        return parent::insert($this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? null));
+    }
+
+    public function update($id, $obj): \stdClass
+    {
+        $obj = (array) $obj;
+        $licenseType = $obj['license_type'] ?? ($this->findById($id)->license_type ?? null);
+        return parent::update($id, $this->clearCompetitionOnlyFields($obj, $licenseType));
+    }
+
+    /**
+     * Medical certificate, its date, doctor and identity photo are only kept
+     * for a competition license, whatever the caller (API, import, sync...).
+     */
+    private function clearCompetitionOnlyFields(array $data, ?string $licenseType): array
+    {
+        if ($licenseType === null || $licenseType === LicenseType::COMPETITION) {
+            return $data;
+        }
+        foreach (self::COMPETITION_ONLY_FIELDS as $field) {
+            $data[$field] = null;
+        }
+        return $data;
     }
 
     /**
