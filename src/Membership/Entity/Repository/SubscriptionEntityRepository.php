@@ -25,17 +25,72 @@ class SubscriptionEntityRepository extends EntityRepository implements Subscript
         $this->entityManager = $entityManager;
     }
 
+    /**
+     * Below this age (at the campaign start) a member is a minor
+     */
+    public const MAJORITY_AGE = 18;
+
     public function insert($obj): \stdClass
     {
         $obj = (array) $obj;
-        return parent::insert($this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? null));
+        $obj = $this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? null);
+        $obj = $this->clearMinorOnlyFields($obj, $obj['member_id'] ?? null, $obj['campaign_id'] ?? null);
+        return parent::insert($obj);
     }
 
     public function update($id, $obj): \stdClass
     {
         $obj = (array) $obj;
-        $licenseType = $obj['license_type'] ?? ($this->findById($id)->license_type ?? null);
-        return parent::update($id, $this->clearCompetitionOnlyFields($obj, $licenseType));
+        $existing = null;
+        $current = function (string $field) use ($id, &$existing) {
+            $existing ??= $this->findById($id);
+            return $existing->$field ?? null;
+        };
+
+        $obj = $this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? $current('license_type'));
+        // Only needed when the exit authorization is written
+        if (array_key_exists('agree_exit', $obj) && $obj['agree_exit'] !== null) {
+            $obj = $this->clearMinorOnlyFields(
+                $obj,
+                $obj['member_id'] ?? $current('member_id'),
+                $obj['campaign_id'] ?? $current('campaign_id')
+            );
+        }
+        return parent::update($id, $obj);
+    }
+
+    /**
+     * The exit authorization only concerns minors (at the campaign start, or
+     * today without one). It is kept when the age cannot be computed.
+     */
+    private function clearMinorOnlyFields(array $data, $memberId, $campaignId): array
+    {
+        if (!array_key_exists('agree_exit', $data) || $data['agree_exit'] === null || !$memberId) {
+            return $data;
+        }
+
+        $member = $this->entityManager->getRepository('wolf-memberships.member')->findById($memberId);
+        if (!$member || empty($member->birthdate)) {
+            return $data;
+        }
+
+        $campaign = $campaignId
+            ? $this->entityManager->getRepository('wolf-memberships.campaign')->findById($campaignId)
+            : null;
+        $reference = !empty($campaign->start_date)
+            ? (new \DateTimeImmutable())->setTimestamp((int) $campaign->start_date)
+            : new \DateTimeImmutable();
+
+        $birthdate = (new \DateTimeImmutable())->setTimestamp((int) $member->birthdate)->setTime(0, 0);
+        $reference = $reference->setTime(0, 0);
+        if ($birthdate > $reference) {
+            return $data;
+        }
+
+        if ($birthdate->diff($reference)->y >= self::MAJORITY_AGE) {
+            $data['agree_exit'] = null;
+        }
+        return $data;
     }
 
     /**
