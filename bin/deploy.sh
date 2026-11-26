@@ -31,6 +31,8 @@ find_php_cli() {
     local version
     for version in 8.5 8.4 8.3 8.2; do
         candidates+=(
+            "php$version-cli"
+            "/usr/bin/php$version-cli"
             "php$version"
             "php${version/./}"
             "/usr/local/php$version/bin/php"
