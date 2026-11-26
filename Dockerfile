@@ -6,9 +6,15 @@ RUN docker-php-ext-install zip
 RUN docker-php-ext-install pdo pdo_mysql
 RUN a2enmod rewrite
 COPY default.conf /etc/apache2/sites-available/000-default.conf
-WORKDIR /app
 
 COPY --from=composer/composer /usr/bin/composer /usr/bin/composer
+
+# Add php extensions and dependencies
+RUN apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+RUN docker-php-ext-install gd
+
+WORKDIR /app
 
 COPY . /app
 RUN chown -R www-data:www-data /app

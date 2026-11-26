@@ -9,11 +9,13 @@ class Expr implements DbAwareInterface
     private $types = [
         'eq' => Expr\Eq::class,
         'in' => Expr\In::class,
+        'notIn' => Expr\NotIn::class,
         'and' => Expr\AndX::class,
         'or' => Expr\OrX::class,
         'gt' => Expr\MoreThan::class,
         'lt' => Expr\LessThan::class,
         'like' => Expr\Like::class,
+        'notLike' => Expr\NotLike::class,
         'match' => Expr\Matches::class,
     ];
 

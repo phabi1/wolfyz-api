@@ -59,4 +59,12 @@ class DateHelper
         // Default to Y-m-d format
         return self::FORMAT_DEFAULT;
     }
+
+    public function format(\DateTimeInterface|int $date, ?string $format = null): string
+    {
+        if (!$format) {
+            $format = self::FORMAT_DEFAULT;
+        }
+        return ($date instanceof \DateTimeInterface ? $date->format($format) : date($format, $date));
+    }
 }
