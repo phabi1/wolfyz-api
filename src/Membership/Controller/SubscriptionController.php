@@ -3,7 +3,6 @@
 namespace App\Membership\Controller;
 
 use App\Core\UseCase\UseCaseBus;
-use App\Membership\Entity\Service\SubscriptionEntityService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,7 +15,7 @@ class SubscriptionController extends AbstractCampaignController
 
     protected function buildEntityService()
     {
-        return new SubscriptionEntityService($this->getService('entity.manager'));
+        return $this->getService('wolf-memberships.entity.service.subscription');
     }
 
     public function importAction($request)

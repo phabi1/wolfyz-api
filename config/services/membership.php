@@ -108,7 +108,7 @@ return [
         ]
     ],
     'wolf-memberships.entity.service.subscription' => [
-        'factory' => [\App\Membership\Entity\Service\SubscriptionEntityServiceFactory::class, 'create'],
+        'class' => \App\Membership\Entity\Service\SubscriptionEntityService::class,
         'arguments' => [
             '@entity.manager',
         ]

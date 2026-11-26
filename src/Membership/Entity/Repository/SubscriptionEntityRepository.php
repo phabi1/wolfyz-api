@@ -4,108 +4,14 @@ namespace App\Membership\Entity\Repository;
 
 use App\Core\Entity\EntityRepository;
 use App\Core\Entity\EntityManager;
-use App\Membership\Model\LicenseType;
 
 class SubscriptionEntityRepository extends EntityRepository implements SubscriptionEntityRepositoryInterface
 {
     private EntityManager $entityManager;
 
-    /**
-     * Data that only applies to a competition license
-     */
-    public const COMPETITION_ONLY_FIELDS = [
-        'medical_certificate',
-        'medical_certificate_date',
-        'doctor',
-        'identity_photo',
-    ];
-
     public function __construct(EntityManager $entityManager)
     {
         $this->entityManager = $entityManager;
-    }
-
-    /**
-     * Below this age (at the campaign start) a member is a minor
-     */
-    public const MAJORITY_AGE = 18;
-
-    public function insert($obj): \stdClass
-    {
-        $obj = (array) $obj;
-        $obj = $this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? null);
-        $obj = $this->clearMinorOnlyFields($obj, $obj['member_id'] ?? null, $obj['campaign_id'] ?? null);
-        return parent::insert($obj);
-    }
-
-    public function update($id, $obj): \stdClass
-    {
-        $obj = (array) $obj;
-        $existing = null;
-        $current = function (string $field) use ($id, &$existing) {
-            $existing ??= $this->findById($id);
-            return $existing->$field ?? null;
-        };
-
-        $obj = $this->clearCompetitionOnlyFields($obj, $obj['license_type'] ?? $current('license_type'));
-        // Only needed when the exit authorization is written
-        if (array_key_exists('agree_exit', $obj) && $obj['agree_exit'] !== null) {
-            $obj = $this->clearMinorOnlyFields(
-                $obj,
-                $obj['member_id'] ?? $current('member_id'),
-                $obj['campaign_id'] ?? $current('campaign_id')
-            );
-        }
-        return parent::update($id, $obj);
-    }
-
-    /**
-     * The exit authorization only concerns minors (at the campaign start, or
-     * today without one). It is kept when the age cannot be computed.
-     */
-    private function clearMinorOnlyFields(array $data, $memberId, $campaignId): array
-    {
-        if (!array_key_exists('agree_exit', $data) || $data['agree_exit'] === null || !$memberId) {
-            return $data;
-        }
-
-        $member = $this->entityManager->getRepository('wolf-memberships.member')->findById($memberId);
-        if (!$member || empty($member->birthdate)) {
-            return $data;
-        }
-
-        $campaign = $campaignId
-            ? $this->entityManager->getRepository('wolf-memberships.campaign')->findById($campaignId)
-            : null;
-        $reference = !empty($campaign->start_date)
-            ? (new \DateTimeImmutable())->setTimestamp((int) $campaign->start_date)
-            : new \DateTimeImmutable();
-
-        $birthdate = (new \DateTimeImmutable())->setTimestamp((int) $member->birthdate)->setTime(0, 0);
-        $reference = $reference->setTime(0, 0);
-        if ($birthdate > $reference) {
-            return $data;
-        }
-
-        if ($birthdate->diff($reference)->y >= self::MAJORITY_AGE) {
-            $data['agree_exit'] = null;
-        }
-        return $data;
-    }
-
-    /**
-     * Medical certificate, its date, doctor and identity photo are only kept
-     * for a competition license, whatever the caller (API, import, sync...).
-     */
-    private function clearCompetitionOnlyFields(array $data, ?string $licenseType): array
-    {
-        if ($licenseType === null || $licenseType === LicenseType::COMPETITION) {
-            return $data;
-        }
-        foreach (self::COMPETITION_ONLY_FIELDS as $field) {
-            $data[$field] = null;
-        }
-        return $data;
     }
 
     /**

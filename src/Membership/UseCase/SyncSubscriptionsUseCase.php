@@ -2,6 +2,7 @@
 
 namespace App\Membership\UseCase;
 
+use App\Membership\Entity\Service\SubscriptionEntityService;
 use App\Core\Di\Locator;
 use App\Core\Entity\EntityManager;
 use App\Core\Entity\EntityRepositoryInterface;
@@ -34,10 +35,14 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
 
     private NameHelper $nameHelper;
 
+    private SubscriptionEntityService $subscriptionService;
+
     public function __construct(EntityManager $entityManager, MemberHelper $memberHelper, Locator $helpers)
     {
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
+        // Writes go through the entity service so business rules apply
+        $this->subscriptionService = new SubscriptionEntityService($entityManager);
         $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
         $this->memberHelper = $memberHelper;
         $this->dateHelper = $helpers->get('date');
@@ -171,7 +176,7 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
             );
 
             try {
-                $this->subscriptionRepository->update($existingSubscription->id, $subscriptionData);
+                $this->subscriptionService->update($existingSubscription->id, $subscriptionData);
             } catch (\Exception $e) {
                 $this->watchdogService->error('Failed to update subscription ' . $existingSubscription->id, ['exception' => $e->getMessage()]);
                 $log['subscriptions']['error']++;

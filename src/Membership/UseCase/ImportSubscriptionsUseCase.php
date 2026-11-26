@@ -2,6 +2,7 @@
 
 namespace App\Membership\UseCase;
 
+use App\Membership\Entity\Service\SubscriptionEntityService;
 use App\Core\Di\Locator;
 use App\Core\Entity\EntityManager;
 use App\Core\Helper\DateHelper;
@@ -32,10 +33,14 @@ class ImportSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInter
     private $phoneHelper;
     private $emailHelper;
 
+    private SubscriptionEntityService $subscriptionService;
+
     public function __construct(EntityManager $entityManager, MemberHelper $memberHelper, Locator $helpers)
     {
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
+        // Writes go through the entity service so business rules apply
+        $this->subscriptionService = new SubscriptionEntityService($entityManager);
         $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
         $this->sessionRepository = $entityManager->getRepository('wolf-memberships.session');
         $this->memberHelper = $memberHelper;
@@ -147,7 +152,7 @@ class ImportSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInter
             ];
 
             try {
-                $subscription = $this->subscriptionRepository->insert($subscriptionData);
+                $subscription = $this->subscriptionService->create($subscriptionData);
             } catch (\Exception $e) {
                 $this->watchdogService->error('Failed to insert subscription for member ' . $member->id, ['exception' => $e->getMessage()]);
                 $log['skipped']++;

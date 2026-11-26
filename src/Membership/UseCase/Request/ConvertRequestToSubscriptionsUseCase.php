@@ -2,6 +2,7 @@
 
 namespace App\Membership\UseCase\Request;
 
+use App\Membership\Entity\Service\SubscriptionEntityService;
 use App\Core\Entity\EntityManager;
 use App\Core\Entity\EntityRepositoryInterface;
 use App\Core\UseCase\UseCaseInterface;
@@ -25,11 +26,15 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
 
     private $dateHelper;
 
+    private SubscriptionEntityService $subscriptionService;
+
     public function __construct(EntityManager $entityManager, MemberHelper $memberHelper, DateHelper $dateHelper)
     {
         $this->memberRepository = $entityManager->getRepository('wolf-memberships.member');
         $this->requestRepository = $entityManager->getRepository('wolf-memberships.request');
         $this->subscriptionRepository = $entityManager->getRepository('wolf-memberships.subscription');
+        // Writes go through the entity service so business rules apply
+        $this->subscriptionService = new SubscriptionEntityService($entityManager);
         $this->contactRepository = $entityManager->getRepository('wolf-memberships.contact');
         $this->sessionRepository = $entityManager->getRepository('wolf-memberships.session');
         $this->memberHelper = $memberHelper;
@@ -103,7 +108,7 @@ class ConvertRequestToSubscriptionsUseCase implements UseCaseInterface
                 'campaign_id' => $campaignId,
             ];
 
-            $subscription = $this->subscriptionRepository->insert($subscriptionData);
+            $subscription = $this->subscriptionService->create($subscriptionData);
 
             $contactData = $this->extractContacts($data);
             foreach ($contactData as $contact) {
