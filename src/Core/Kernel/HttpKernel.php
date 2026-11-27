@@ -39,9 +39,12 @@ class HttpKernel extends Base
              * @var Firewall
              */
             $firewall = $container->get('security.firewall');
-            $authenticated = $firewall->authenticate($request);
-            if (!$authenticated) {
-                $response = new JsonResponse(['message' => 'Unauthorized'], 401);
+            $route = $container->get('routes')->get((string) ($routeParameters['_route'] ?? ''));
+            $access = $firewall->check($request, $route);
+            if ($access !== Firewall::GRANTED) {
+                $response = $access === Firewall::FORBIDDEN
+                    ? new JsonResponse(['message' => 'Forbidden'], 403)
+                    : new JsonResponse(['message' => 'Unauthorized'], 401);
                 $this->withCors($response, $referer);
                 $response->send();
                 return;
@@ -56,7 +59,6 @@ class HttpKernel extends Base
             $response = $controllerInstance->dispatch($action, $request);
 
             $this->withCors($response, $referer);
-            // You can add additional logic here, such as checking user permissions with the firewall
         } catch (ResourceNotFoundException $e) {
             $response = new JsonResponse(['message' => 'Not Found'], 404);
         } catch (MethodNotAllowedException $e) {

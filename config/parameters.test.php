@@ -24,9 +24,15 @@ return [
         'server' => getenv('MEDIA_SERVER'),
     ],
     'security' => [
-        'strategy' => [
-            'api-key' => [
-                'secret' => getenv('SECURITY_STRATEGY_API_KEY_SECRET') ?: 'secret',
+        'firewall' => [
+            'strategies' => [
+                'api-key' => [
+                    'secret' => getenv('SECURITY_STRATEGY_API_KEY_SECRET') ?: 'secret',
+                ],
+                'jwt' => [
+                    'issuer' => 'https://auth.test',
+                    'jwks_uri' => null,
+                ],
             ],
         ],
     ],

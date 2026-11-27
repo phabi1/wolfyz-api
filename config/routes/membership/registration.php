@@ -5,6 +5,7 @@ return [
         'path' => 'membership/campaigns/{campaign_id}/registration',
         'methods' => ['GET'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'registration'],
+        'auth' => ['api-key'],
         'requirements' => [
             'campaign_id' => '\d+'
         ]
@@ -13,6 +14,8 @@ return [
         'path' => 'membership/campaigns/{campaign_id}/registration/calculate-total',
         'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'calculateTotal'],
+        'auth' => ['jwt', 'api-key'],
+        'permission' => [\App\Membership\Permissions::REQUEST_VIEW],
         'requirements' => [
             'campaign_id' => '\d+'
         ]
@@ -21,6 +24,7 @@ return [
         'path' => 'membership/campaigns/{campaign_id}/register',
         'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\RegistrationController::class, 'register'],
+        'auth' => ['api-key'],
         'requirements' => [
             'campaign_id' => '\d+'
         ]

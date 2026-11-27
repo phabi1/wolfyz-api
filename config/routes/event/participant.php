@@ -2,5 +2,11 @@
 return array_merge(\App\Core\Rest\Routes::create(
     'event-participant',
     '/event/events/{event_id}/participants',
-    \App\Event\Controller\ParticipantController::class
+    \App\Event\Controller\ParticipantController::class,
+    [
+        'permission' => [
+            'view' => ['event.view'],
+            'edit' => ['event.edit'],
+        ],
+    ]
 ));

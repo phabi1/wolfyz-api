@@ -5,11 +5,18 @@ return array_merge(
             'path' => '/billing/bank-amount',
             'methods' => ['GET'],
             'controller' => [\App\Billing\Controller\BillingController::class, 'bankAmount'],
+            'permission' => ['billing.view'],
         ],
     ],
     \App\Core\Rest\Routes::create(
         'billing-payment',
         '/billing/payments',
-        \App\Billing\Controller\PaymentController::class
+        \App\Billing\Controller\PaymentController::class,
+        [
+            'permission' => [
+                'view' => ['billing.view'],
+                'edit' => ['billing.edit'],
+            ],
+        ]
     )
 );

@@ -7,6 +7,10 @@ return array_merge(
         \App\Membership\Controller\RequestController::class,
         [
             'actions' => \App\Core\Rest\Routes::ROUTE_ITEMS | \App\Core\Rest\Routes::ROUTE_ITEM,
+            'permission' => [
+                'view' => [\App\Membership\Permissions::REQUEST_VIEW],
+                'edit' => [\App\Membership\Permissions::REQUEST_EDIT],
+            ],
         ]
     ),
     [
@@ -14,6 +18,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/approve',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'approve'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -23,6 +28,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/reject',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'reject'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -32,6 +38,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/paid',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'paid'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -41,6 +48,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/cancel',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'cancel'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -50,6 +58,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/history',
             'methods' => 'GET',
             'controller' => [\App\Membership\Controller\RequestController::class, 'history'],
+            'permission' => [\App\Membership\Permissions::REQUEST_VIEW],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -59,6 +68,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/resend-payment',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'resendPayment'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\d+',
                 'request_id' => '\d+'
@@ -68,6 +78,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'invoice'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\\d+',
                 'request_id' => '\\d+'
@@ -77,6 +88,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice/send-email',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\RequestController::class, 'sendInvoiceEmail'],
+            'permission' => [\App\Membership\Permissions::REQUEST_EDIT],
             'requirements' => [
                 'campaign_id' => '\\d+',
                 'request_id' => '\\d+'
@@ -86,9 +98,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/{request_id}/invoice/download',
             'methods' => 'GET',
             'controller' => [\App\Membership\Controller\RequestController::class, 'downloadInvoice'],
-            'defaults' => [
-                'auth' => 'public'
-            ],
+            'auth' => ['public'],
             'requirements' => [
                 'campaign_id' => '\\d+',
                 'request_id' => '\\d+'
@@ -98,6 +108,7 @@ return array_merge(
             'path' => '/membership/campaigns/{campaign_id}/requests/status/count',
             'methods' => 'GET',
             'controller' => [\App\Membership\Controller\RequestController::class, 'countStatus'],
+            'permission' => [\App\Membership\Permissions::REQUEST_VIEW],
             'requirements' => [
                 'campaign_id' => '\\d+',
                 

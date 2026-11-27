@@ -31,9 +31,15 @@ return [
             'strategies' => [
                 'api-key' => [
                     'secret' => getenv('SECURITY_FIREWALL_STRATEGY_API_KEY_SECRET')
-                ]
+                ],
+                // Access tokens of the auth server. The JWKS URI defaults to
+                // the issuer's; set it when the issuer URL is not reachable
+                // from the API (e.g. Docker).
+                'jwt' => [
+                    'issuer' => getenv('OIDC_ISSUER'),
+                    'jwks_uri' => getenv('OIDC_JWKS_URI') ?: rtrim((string) getenv('OIDC_ISSUER'), '/') . '/.well-known/jwks.json',
+                ],
             ],
-            'default_strategy' => getenv('SECURITY_FIREWALL_DEFAULT_STRATEGY')
         ],
 
     ],

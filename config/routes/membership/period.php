@@ -4,13 +4,20 @@ return array_merge(
     \App\Core\Rest\Routes::create(
         'membership-period',
         '/membership/campaigns/{campaign_id}/periods',
-        \App\Membership\Controller\PeriodController::class
+        \App\Membership\Controller\PeriodController::class,
+        [
+            'permission' => [
+                'view' => \App\Membership\Permissions::ANY_VIEW,
+                'edit' => [\App\Membership\Permissions::CAMPAIGN_EDIT],
+            ],
+        ]
     ),
     [
         'membership-period-print' => [
             'path' => '/membership/campaigns/{campaign_id}/periods/{period_id}/print',
             'methods' => 'POST',
             'controller' => [\App\Membership\Controller\PeriodController::class, 'print'],
+            'permission' => \App\Membership\Permissions::ANY_VIEW,
             'requirements' => [
                 'campaign_id' => '\d+',
                 'period_id' => '\d+'
