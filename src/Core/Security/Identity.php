@@ -3,9 +3,9 @@
 namespace App\Core\Security;
 
 /**
- * Caller of the current request: a user authenticated by an access token of
- * the auth server (with the permissions of their roles), or a trusted server
- * authenticated by the API key (no user, no permission).
+ * Caller of the current request, authenticated by an access token of the auth
+ * server: a user (permissions of their roles) or an OAuth client acting on
+ * its own behalf, e.g. the WordPress site (permissions of the client's roles).
  */
 class Identity
 {

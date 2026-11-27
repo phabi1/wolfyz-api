@@ -8,7 +8,6 @@ use App\Core\Di\Locator;
 use App\Core\Security\Firewall;
 use App\Core\Security\Identity;
 use App\Core\Security\Jwks;
-use App\Core\Security\Strategy\ApiKeyStrategy;
 use App\Core\Security\Strategy\JwtStrategy;
 use App\Core\Security\Strategy\PublicStrategy;
 use Firebase\JWT\JWT;
@@ -159,7 +158,6 @@ final class JwtStrategyTest extends TestCase
     {
         $strategies = [
             'jwt' => $this->strategy(),
-            'api-key' => new ApiKeyStrategy('secret'),
             'public' => new PublicStrategy(),
         ];
         $locator = new class ($strategies) extends Locator {
@@ -185,23 +183,24 @@ final class JwtStrategyTest extends TestCase
     {
         $firewall = $this->firewall();
         $user = fn () => $this->request($this->token());
-        $apiKey = function () {
-            $request = $this->request(null);
-            $request->headers->set('X-Api-Key', 'secret');
-            return $request;
-        };
+        $site = fn () => $this->request($this->token([
+            'aud' => 'wordpress',
+            'sub' => 'wordpress',
+            'scopes' => ['api'],
+            'permissions' => ['membership.registration'],
+        ]));
         $read = self::route(['jwt'], ['membership.request.view']);
         $write = self::route(['jwt'], ['membership.request.edit']);
-        $shared = self::route(['jwt', 'api-key'], ['membership.subscription.edit']);
+        $form = self::route(['jwt'], ['membership.subscription.edit', 'membership.registration']);
         $public = self::route(['public'], []);
 
         self::assertSame(Firewall::GRANTED, $firewall->check($user(), $read));
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), $write));
         self::assertSame(Firewall::UNAUTHENTICATED, $firewall->check($this->request(null), $read));
-        // The API key is only accepted where the route allows it.
-        self::assertSame(Firewall::UNAUTHENTICATED, $firewall->check($apiKey(), $read));
-        self::assertSame(Firewall::GRANTED, $firewall->check($apiKey(), $shared));
-        self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), $shared));
+        // Client credentials token of the website: only its own permissions.
+        self::assertSame(Firewall::GRANTED, $firewall->check($site(), $form));
+        self::assertSame(Firewall::FORBIDDEN, $firewall->check($site(), $read));
+        self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), $form));
         self::assertSame(Firewall::GRANTED, $firewall->check($this->request(null), $public));
         // No permission declared: denied.
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), self::route(['jwt'], [])));

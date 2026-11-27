@@ -14,6 +14,8 @@ final class Permissions
     public const REQUEST_EDIT = 'membership.request.edit';
     public const SUBSCRIPTION_VIEW = 'membership.subscription.view';
     public const SUBSCRIPTION_EDIT = 'membership.subscription.edit';
+    /** Registration form of the website (WordPress, client_credentials token). */
+    public const REGISTRATION = 'membership.registration';
 
     /** Any membership view: the campaign structure is read by every membership page. */
     public const ANY_VIEW = [self::CAMPAIGN_VIEW, self::REQUEST_VIEW, self::SUBSCRIPTION_VIEW];

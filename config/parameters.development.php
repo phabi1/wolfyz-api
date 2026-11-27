@@ -29,9 +29,6 @@ return [
     'security' => [
         'firewall' => [
             'strategies' => [
-                'api-key' => [
-                    'secret' => getenv('SECURITY_FIREWALL_STRATEGY_API_KEY_SECRET')
-                ],
                 // Access tokens of the auth server. The JWKS URI defaults to
                 // the issuer's; set it when the issuer URL is not reachable
                 // from the API (e.g. Docker).

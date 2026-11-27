@@ -26,9 +26,6 @@ return [
     'security' => [
         'firewall' => [
             'strategies' => [
-                'api-key' => [
-                    'secret' => getenv('SECURITY_STRATEGY_API_KEY_SECRET') ?: 'secret',
-                ],
                 'jwt' => [
                     'issuer' => 'https://auth.test',
                     'jwks_uri' => null,
