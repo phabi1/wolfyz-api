@@ -30,11 +30,11 @@ return [
         'firewall' => [
             'strategies' => [
                 // Access tokens of the auth server. The JWKS URI defaults to
-                // the issuer's; set it when the issuer URL is not reachable
-                // from the API (e.g. Docker).
+                // <issuer>/.well-known/jwks.json; set it when the issuer URL
+                // is not reachable from the API (e.g. Docker).
                 'jwt' => [
                     'issuer' => getenv('OIDC_ISSUER'),
-                    'jwks_uri' => getenv('OIDC_JWKS_URI') ?: rtrim((string) getenv('OIDC_ISSUER'), '/') . '/.well-known/jwks.json',
+                    'jwks_uri' => getenv('OIDC_JWKS_URI') ?: null,
                 ],
             ],
         ],

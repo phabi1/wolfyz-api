@@ -37,7 +37,7 @@ final class RouteAccessTest extends TestCase
 
         self::assertNotSame([], $auth);
         self::assertSame([], array_diff($auth, ['jwt', 'public']), "Route \"$name\": unknown strategy.");
-        if (in_array('jwt', $auth, true)) {
+        if (in_array('jwt', $auth, true) && empty($route['self'])) {
             self::assertNotEmpty($route['permission'] ?? [], "Route \"$name\" declares no permission.");
         }
     }

@@ -98,6 +98,19 @@ final class JwtStrategyTest extends TestCase
         self::assertInstanceOf(Identity::class, $identity);
         self::assertSame('user-1', $identity->getId());
         self::assertSame(['membership.request.view'], $identity->getPermissions());
+        self::assertTrue($identity->isUser());
+        self::assertNull($identity->getVerifiedEmail());
+    }
+
+    public function testExposesOnlyAVerifiedEmail(): void
+    {
+        $verified = $this->request($this->token(['email' => 'jane@example.com', 'email_verified' => true]));
+        $unverified = $this->request($this->token(['email' => 'jane@example.com', 'email_verified' => false]));
+        $this->strategy()->authenticate($verified);
+        $this->strategy()->authenticate($unverified);
+
+        self::assertSame('jane@example.com', $verified->attributes->get('_identity')->getVerifiedEmail());
+        self::assertNull($unverified->attributes->get('_identity')->getVerifiedEmail());
     }
 
     public static function invalidTokens(): array
@@ -133,6 +146,16 @@ final class JwtStrategyTest extends TestCase
         $strategy = new JwtStrategy(new Jwks(null, $this->cacheFile), null);
 
         self::assertFalse($strategy->authenticate($this->request($this->token())));
+    }
+
+    public function testJwksUriDefaultsToTheIssuers(): void
+    {
+        $default = Jwks::forIssuer('https://auth.example.com/', null, $this->cacheFile);
+        $configured = Jwks::forIssuer('https://auth.example.com', 'http://auth/jwks', $this->cacheFile);
+        $uri = fn (Jwks $jwks) => (new \ReflectionProperty(Jwks::class, 'uri'))->getValue($jwks);
+
+        self::assertSame('https://auth.example.com/.well-known/jwks.json', $uri($default));
+        self::assertSame('http://auth/jwks', $uri($configured));
     }
 
     public function testCachesTheKeys(): void
@@ -174,9 +197,9 @@ final class JwtStrategyTest extends TestCase
         return new Firewall($locator);
     }
 
-    private static function route(array $auth, array $permission): Route
+    private static function route(array $auth, array $permission, bool $self = false): Route
     {
-        return new Route('/', options: ['_auth' => $auth, '_permission' => $permission]);
+        return new Route('/', options: ['_auth' => $auth, '_permission' => $permission, '_self' => $self]);
     }
 
     public function testFirewall(): void
@@ -202,6 +225,10 @@ final class JwtStrategyTest extends TestCase
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($site(), $read));
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), $form));
         self::assertSame(Firewall::GRANTED, $firewall->check($this->request(null), $public));
+        // Own data: any user, but not a client acting on its own behalf.
+        $mine = self::route(['jwt'], [], true);
+        self::assertSame(Firewall::GRANTED, $firewall->check($this->request($this->token(['permissions' => []])), $mine));
+        self::assertSame(Firewall::FORBIDDEN, $firewall->check($site(), $mine));
         // No permission declared: denied.
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), self::route(['jwt'], [])));
         self::assertSame(Firewall::FORBIDDEN, $firewall->check($user(), null));

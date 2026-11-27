@@ -104,6 +104,14 @@
         ],
         'shared' => false
     ],
+    'wolf-events.use-case.get_user_registrations' => [
+        'class' => \App\Event\UseCase\Registration\GetUserRegistrationsUseCase::class,
+        'arguments' => ['@entity.manager'],
+        'tags' => [
+            ['name' => 'use-case', 'value' => 'wolf-events.get_user_registrations']
+        ],
+        'shared' => false
+    ],
     'wolf-events.use-case.register_to_event' => [
         'class' => \App\Event\UseCase\Registration\RegisterToEventUseCase::class,
         'arguments' => ['@entity.manager', '@use-case-bus'],

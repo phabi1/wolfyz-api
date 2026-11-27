@@ -14,9 +14,12 @@ use Symfony\Component\Routing\Route;
  *   "jwt" (access token of the auth server: a user of the club, or the
  *   WordPress site with a client_credentials token), "public" (anyone);
  * - "permission": with "jwt", the caller needs at least one of them. Not
- *   checked for "public".
+ *   checked for "public";
+ * - "self": true for the routes of a user's own data (e.g. their event
+ *   registrations): any signed-in user, no permission, but not an OAuth client
+ *   acting on its own behalf. The controller limits the data to the user.
  *
- * A "jwt" route without permission is denied (fail closed).
+ * A "jwt" route with neither permission nor "self" is denied (fail closed).
  */
 class Firewall
 {
@@ -35,6 +38,7 @@ class Firewall
     {
         $auth = (array) ($route?->getOption('_auth') ?? ['jwt']);
         $permission = (array) ($route?->getOption('_permission') ?? []);
+        $self = (bool) ($route?->getOption('_self') ?? false);
 
         foreach ($auth as $strategy) {
             if (!$this->strategies->get($strategy)->authenticate($request)) {
@@ -44,9 +48,9 @@ class Firewall
                 return self::GRANTED;
             }
             $identity = $request->attributes->get('_identity');
-            $granted = $identity instanceof Identity
-                && $permission !== []
-                && $identity->hasPermission(...$permission);
+            $granted = $identity instanceof Identity && ($self
+                ? $identity->isUser()
+                : $permission !== [] && $identity->hasPermission(...$permission));
 
             return $granted ? self::GRANTED : self::FORBIDDEN;
         }

@@ -16,6 +16,10 @@ who may call it, next to its path and controller (`config/routes`):
   (token's `permissions` claim: roles of the user, or of the OAuth client).
   The website forms need `membership.registration` / `event.registration`
   (role "Site web" of the `wordpress` client). Not checked for `public`.
+- `self` (true): the route returns the caller's own data (e.g.
+  `GET /event/me/registrations`): any signed-in user, no permission, but not
+  an OAuth client acting on its own behalf. The controller limits the data to
+  the user (`sub`, and the `email` claim only when `email_verified`).
 
 ```php
 'membership-request-approve' => [
@@ -29,7 +33,7 @@ who may call it, next to its path and controller (`config/routes`):
 `Routes::create()` takes a `permission` option, `['view' => ..., 'edit' => ...]`:
 the GET routes it creates need the `view` permission, the others the `edit` one.
 
-A `jwt` route without permission is denied; `test/Core/Security/RouteAccessTest.php`
+A `jwt` route with neither `permission` nor `self` is denied; `test/Core/Security/RouteAccessTest.php`
 fails when a route declares none.
 
 Responses: 401 when no accepted authentication succeeds, 403 when the caller

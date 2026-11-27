@@ -19,6 +19,23 @@ class RegistrationController extends ApiController
         return $response;
     }
 
+    /**
+     * Event registrations of the signed-in user (route declared "self": the
+     * caller is a user, the data is limited to them).
+     */
+    public function mineAction(Request $request)
+    {
+        $identity = $request->attributes->get('_identity');
+        if (!$identity instanceof \App\Core\Security\Identity || !$identity->isUser()) {
+            return new JsonResponse(['message' => 'Forbidden'], 403);
+        }
+
+        return $this->useCaseBus('wolf-events.get_user_registrations', [
+            'user_id' => (string) $identity->getId(),
+            'email' => $identity->getVerifiedEmail(),
+        ]);
+    }
+
     public function checkSubscriptionAction(Request $request)
     {
         $data = $request->getPayload()->all();
@@ -79,10 +96,16 @@ class RegistrationController extends ApiController
         }
 
         try {
+            // Account of the person registering, sent by the website when
+            // they are signed in (the website is trusted: event.registration).
+            $userId = $data['user_id'] ?? null;
+            $userId = is_string($userId) && $userId !== '' && strlen($userId) <= 64 ? $userId : null;
+
             $result = $this->useCaseBus('wolf-events.register_to_event', [
                 'event_id' => $eventId,
                 'contact' => $contact,
                 'participants' => $participants,
+                'user_id' => $userId,
                 'message' => $data['message'] ?? null,
             ]);
 
