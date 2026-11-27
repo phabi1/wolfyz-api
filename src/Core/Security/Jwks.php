@@ -34,6 +34,19 @@ class Jwks
     }
 
     /**
+     * JWKS of the issuer: the configured URI, or by default
+     * <issuer>/.well-known/jwks.json (OIDC discovery convention).
+     */
+    public static function forIssuer(?string $issuer, ?string $uri, string $cacheFile): self
+    {
+        if (($uri === null || $uri === '') && $issuer !== null && $issuer !== '') {
+            $uri = rtrim($issuer, '/') . '/.well-known/jwks.json';
+        }
+
+        return new self($uri, $cacheFile);
+    }
+
+    /**
      * @return array<string, Key> keys by key id
      */
     public function keys(bool $reload = false): array

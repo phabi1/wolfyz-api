@@ -3,6 +3,13 @@
 use App\Event\Controller\RegistrationController;
 
 return [
+    // Registrations of the signed-in user ("My registrations" block of the website).
+    'event-registration-mine' => [
+        'path' => '/event/me/registrations',
+        'controller' => [RegistrationController::class, 'mine'],
+        'self' => true,
+        'methods' => 'GET',
+    ],
     'event-registration-info' => [
         'path' => '/event/registration/{id}/infos',
         'controller' => [RegistrationController::class, 'info'],

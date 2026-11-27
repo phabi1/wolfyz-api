@@ -25,6 +25,7 @@ class RoutesFactory
                 ($info['options'] ?? []) + [
                     '_auth' => (array) ($info['auth'] ?? ['jwt']),
                     '_permission' => (array) ($info['permission'] ?? []),
+                    '_self' => (bool) ($info['self'] ?? false),
                 ],
                 $info['host'] ?? '',
                 $info['schemes'] ?? [],

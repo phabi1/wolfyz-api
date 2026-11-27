@@ -64,7 +64,17 @@ class JwtStrategy implements StrategyInterface
             return null;
         }
 
-        return new Identity($subject, array_values(array_filter($permissions, 'is_string')));
+        // client_credentials tokens: the client is its own subject.
+        $audience = (array) ($claims['aud'] ?? []);
+        $email = $claims['email'] ?? null;
+
+        return new Identity(
+            $subject,
+            array_values(array_filter($permissions, 'is_string')),
+            !in_array($subject, $audience, true),
+            is_string($email) && $email !== '' ? $email : null,
+            ($claims['email_verified'] ?? false) === true,
+        );
     }
 
     /** @return array<string, mixed>|null */

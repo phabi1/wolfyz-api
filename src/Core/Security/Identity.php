@@ -11,10 +11,15 @@ class Identity
 {
     /**
      * @param string[] $permissions
+     * @param bool $user false for an OAuth client acting on its own behalf
+     * @param string|null $email email of the user ("email" scope)
      */
     public function __construct(
         private $id,
         private readonly array $permissions = [],
+        private readonly bool $user = true,
+        private readonly ?string $email = null,
+        private readonly bool $emailVerified = false,
     ) {
     }
 
@@ -33,5 +38,17 @@ class Identity
     public function hasPermission(string ...$anyOf): bool
     {
         return array_intersect($anyOf, $this->permissions) !== [];
+    }
+
+    /** False for an OAuth client acting on its own behalf (client_credentials). */
+    public function isUser(): bool
+    {
+        return $this->user;
+    }
+
+    /** Email of the user, only when verified by the auth server. */
+    public function getVerifiedEmail(): ?string
+    {
+        return $this->emailVerified ? $this->email : null;
     }
 }

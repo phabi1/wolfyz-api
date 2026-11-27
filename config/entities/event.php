@@ -65,6 +65,8 @@ return [
             'fields' => [
                 'id' => ['type' => Field::TYPE_INTEGER],
                 'event_id' => ['type' => Field::TYPE_INTEGER, 'required' => true],
+                // Auth server user who registered while signed in on the website.
+                'user_id' => ['type' => Field::TYPE_STRING, 'nullable' => true],
                 'amount' => ['type' => Field::TYPE_INTEGER, 'required' => true],
                 'seller_firstname' => ['type' => Field::TYPE_STRING, 'required' => true],
                 'seller_lastname' => ['type' => Field::TYPE_STRING, 'required' => true],

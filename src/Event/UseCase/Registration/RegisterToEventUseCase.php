@@ -58,6 +58,7 @@ class RegisterToEventUseCase implements UseCaseInterface
             'seller_firstname' => $params['contact']['firstname'],
             'seller_lastname' => $params['contact']['lastname'],
             'seller_email' => $params['contact']['email'],
+            'user_id' => $params['user_id'] ?? null,
             'amount' => $amount,
             'meta' => []
         ];
