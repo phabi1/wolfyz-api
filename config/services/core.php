@@ -117,8 +117,14 @@ return
             'class' => \App\Core\Security\Firewall::class,
             'arguments' => [
                 '@security.firewall.strategies',
-                '!security.firewall.default_strategy'
             ]
+        ],
+        'security.jwks' => [
+            'class' => \App\Core\Security\Jwks::class,
+            'arguments' => [
+                '!security.firewall.strategies.jwt.jwks_uri',
+                CACHE_DIR . '/jwks.json',
+            ],
         ],
         'security.firewall.strategies' => [
             'class' => \App\Core\Di\Locator::class,
@@ -135,6 +141,7 @@ return
         ],
         'security.firewall.strategy.jwt' => [
             'class' => \App\Core\Security\Strategy\JwtStrategy::class,
+            'arguments' => ['@security.jwks', '!security.firewall.strategies.jwt.issuer'],
             'tags' => [['name' => 'security.firewall.strategy', 'value' => 'jwt']]
         ],
         'watchdog' => [

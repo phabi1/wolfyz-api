@@ -5,6 +5,7 @@ return array_merge(
             'path' => '/event/events/{id}/copy',
             'methods' => ['POST'],
             'controller' => [\App\Event\Controller\EventController::class, 'copy'],
+            'permission' => ['event.edit'],
             'requirements' => [
                 'id' => '[0-9]+',
             ],
@@ -13,6 +14,12 @@ return array_merge(
     \App\Core\Rest\Routes::create(
         'event-event',
         '/event/events',
-        \App\Event\Controller\EventController::class
+        \App\Event\Controller\EventController::class,
+        [
+            'permission' => [
+                'view' => ['event.view'],
+                'edit' => ['event.edit'],
+            ],
+        ]
     )
 );

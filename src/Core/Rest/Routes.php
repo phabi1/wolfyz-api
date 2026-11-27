@@ -14,6 +14,14 @@ class Routes
     const ROUTE_BULK_DELETE = 128;
     const ROUTE_ALL = 255;
     
+    /**
+     * Options:
+     * - "actions": routes to create (ROUTE_* flags);
+     * - "permission": ['view' => permission(s), 'edit' => permission(s)]: the
+     *   GET routes need one of the "view" permissions, the others one of the
+     *   "edit" permissions (see App\Core\Security\Firewall);
+     * - "auth": accepted authentication strategies (default: ["jwt"]).
+     */
     public static function create($entity, $path, $controller, $options = [])
     {
         $options += [
@@ -86,6 +94,16 @@ class Routes
                 'controller' => [$controller, 'bulkDelete']
             ];
         }
+        foreach ($routes as $name => $route) {
+            if (isset($options['permission'])) {
+                $read = $route['methods'] === ['GET'];
+                $routes[$name]['permission'] = (array) $options['permission'][$read ? 'view' : 'edit'];
+            }
+            if (isset($options['auth'])) {
+                $routes[$name]['auth'] = (array) $options['auth'];
+            }
+        }
+
         return $routes;
     }
 }

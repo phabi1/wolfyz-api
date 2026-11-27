@@ -42,10 +42,14 @@ abstract class IntegrationTestCase extends TestCase
         $request->attributes->add($routeParameters);
 
         $firewall = $container->get('security.firewall');
-        self::assertTrue($firewall->authenticate($request), 'Request was rejected by firewall.');
+        $route = $container->get('routes')->get((string) ($routeParameters['_route'] ?? ''));
+        self::assertSame(
+            \App\Core\Security\Firewall::GRANTED,
+            $firewall->check($request, $route),
+            'Request was rejected by firewall.',
+        );
 
-        $controller = $routeParameters[0];
-        $action = $routeParameters[1];
+        [$controller, $action] = $routeParameters['_controller'];
 
         $controllerInstance = new $controller();
         $controllerInstance->setContainer($container);

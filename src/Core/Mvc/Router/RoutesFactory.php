@@ -21,7 +21,11 @@ class RoutesFactory
                 $info['path'],
                 array_merge(['_controller' => $info['controller']], $info['defaults'] ?? []),
                 $info['requirements'] ?? [],
-                $info['options'] ?? [],
+                // Access control, checked by App\Core\Security\Firewall.
+                ($info['options'] ?? []) + [
+                    '_auth' => (array) ($info['auth'] ?? ['jwt']),
+                    '_permission' => (array) ($info['permission'] ?? []),
+                ],
                 $info['host'] ?? '',
                 $info['schemes'] ?? [],
                 $info['methods'] ?? [],
