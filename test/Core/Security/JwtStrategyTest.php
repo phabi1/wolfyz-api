@@ -10,6 +10,8 @@ use App\Core\Security\Identity;
 use App\Core\Security\Jwks;
 use App\Core\Security\Strategy\JwtStrategy;
 use App\Core\Security\Strategy\PublicStrategy;
+use App\Core\Watchdog\Storage\StorageInterface;
+use App\Core\Watchdog\WatchdogService;
 use Firebase\JWT\JWT;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -25,6 +27,8 @@ final class JwtStrategyTest extends TestCase
     private static array $jwk;
     private string $cacheFile;
     private int $fetches = 0;
+    /** @var list<array{level: string, message: string, data: array}> */
+    private array $logs = [];
 
     public static function setUpBeforeClass(): void
     {
@@ -61,7 +65,30 @@ final class JwtStrategyTest extends TestCase
             return $document;
         };
 
-        return new JwtStrategy(new Jwks('https://auth.example.com/jwks', $this->cacheFile, $fetcher), self::ISSUER);
+        return $this->watched(new JwtStrategy(new Jwks('https://auth.example.com/jwks', $this->cacheFile, $fetcher), self::ISSUER));
+    }
+
+    private function watched(JwtStrategy $strategy): JwtStrategy
+    {
+        $storage = new class ($this->logs) implements StorageInterface {
+            public function __construct(private array &$logs)
+            {
+            }
+
+            public function log(string $message, array $data = [], string $level = 'info')
+            {
+                $this->logs[] = ['level' => $level, 'message' => $message, 'data' => $data];
+            }
+        };
+        $strategy->setWatchdogService(new WatchdogService($storage));
+
+        return $strategy;
+    }
+
+    /** @return list<string> "level: message" of the logged entries */
+    private function logged(): array
+    {
+        return array_map(static fn (array $log) => $log['level'] . ': ' . $log['message'], $this->logs);
     }
 
     private function token(array $claims = [], ?string $key = null, string $kid = 'key-1'): string
@@ -130,9 +157,65 @@ final class JwtStrategyTest extends TestCase
 
     public function testRejectsEverythingWithoutIssuer(): void
     {
-        $strategy = new JwtStrategy(new Jwks(null, $this->cacheFile), null);
+        $strategy = $this->watched(new JwtStrategy(new Jwks(null, $this->cacheFile), null));
 
         self::assertFalse($strategy->authenticate($this->request($this->token())));
+        self::assertSame(['error: JWT: no issuer configured (security.firewall.strategies.jwt.issuer)'], $this->logged());
+    }
+
+    public function testTheJwksUriDefaultsToTheIssuers(): void
+    {
+        self::assertSame('https://auth.example.com/.well-known/jwks.json', Jwks::forIssuer('https://auth.example.com/', null, $this->cacheFile)->getUri());
+        self::assertSame('https://auth.example.com/.well-known/jwks.json', Jwks::forIssuer('https://auth.example.com', '', $this->cacheFile)->getUri());
+        self::assertSame('http://auth/jwks.json', Jwks::forIssuer('https://auth.example.com', 'http://auth/jwks.json', $this->cacheFile)->getUri());
+        self::assertNull(Jwks::forIssuer(null, null, $this->cacheFile)->getUri());
+    }
+
+    public function testLogsAnErrorWithoutPublicKey(): void
+    {
+        $strategy = $this->watched(new JwtStrategy(new Jwks(null, $this->cacheFile), self::ISSUER));
+
+        self::assertFalse($strategy->authenticate($this->request($this->token())));
+        self::assertSame(['error: JWT: no public key of the auth server'], $this->logged());
+        self::assertSame('no JWKS URI configured', $this->logs[0]['data']['reason']);
+    }
+
+    public function testLogsAnErrorWhenTheKeysCannotBeFetched(): void
+    {
+        $fetcher = static fn (): string => throw new \RuntimeException('Connection refused');
+        $strategy = $this->watched(new JwtStrategy(new Jwks('https://auth.example.com/jwks', $this->cacheFile, $fetcher), self::ISSUER));
+
+        self::assertFalse($strategy->authenticate($this->request($this->token())));
+        self::assertSame(['error: JWT: no public key of the auth server'], $this->logged());
+        self::assertSame('cannot fetch https://auth.example.com/jwks: Connection refused', $this->logs[0]['data']['reason']);
+    }
+
+    public function testUsesTheFetchedKeysWhenTheCacheCannotBeWritten(): void
+    {
+        $this->cacheFile = '/proc/jwks-test/jwks.json';
+        self::assertTrue($this->strategy()->authenticate($this->request($this->token())));
+    }
+
+    public function testLogsWhyATokenIsRejected(): void
+    {
+        $this->strategy()->authenticate($this->request($this->token(['iss' => 'https://evil.example.com'])));
+        $this->strategy()->authenticate($this->request($this->token(['scopes' => ['openid']])));
+        $this->strategy()->authenticate($this->request($this->token([], self::$otherPrivateKey)));
+
+        self::assertSame([
+            'warning: JWT: token of another issuer',
+            'warning: JWT: token without the "api" scope',
+            'warning: JWT: invalid token: Signature verification failed',
+        ], $this->logged());
+        self::assertSame(['iss' => 'https://evil.example.com', 'expected' => self::ISSUER], $this->logs[0]['data']);
+    }
+
+    public function testDoesNotLogAMissingOrExpiredToken(): void
+    {
+        $this->strategy()->authenticate($this->request(null));
+        $this->strategy()->authenticate($this->request($this->token(['exp' => time() - 3600])));
+
+        self::assertSame([], $this->logged());
     }
 
     public function testCachesTheKeys(): void

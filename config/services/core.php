@@ -120,8 +120,9 @@ return
             ]
         ],
         'security.jwks' => [
-            'class' => \App\Core\Security\Jwks::class,
+            'factory' => [\App\Core\Security\Jwks::class, 'forIssuer'],
             'arguments' => [
+                '!security.firewall.strategies.jwt.issuer',
                 '!security.firewall.strategies.jwt.jwks_uri',
                 CACHE_DIR . '/jwks.json',
             ],
