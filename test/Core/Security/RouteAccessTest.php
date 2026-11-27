@@ -36,7 +36,7 @@ final class RouteAccessTest extends TestCase
         $auth = (array) ($route['auth'] ?? ['jwt']);
 
         self::assertNotSame([], $auth);
-        self::assertSame([], array_diff($auth, ['jwt', 'api-key', 'public']), "Route \"$name\": unknown strategy.");
+        self::assertSame([], array_diff($auth, ['jwt', 'public']), "Route \"$name\": unknown strategy.");
         if (in_array('jwt', $auth, true)) {
             self::assertNotEmpty($route['permission'] ?? [], "Route \"$name\" declares no permission.");
         }
@@ -54,8 +54,9 @@ final class RouteAccessTest extends TestCase
             'campaign settings' => ['membership-campaign-settings-update', ['jwt'], ['membership.campaign.edit']],
             'billing' => ['billing-payment-create', ['jwt'], ['billing.edit']],
             'event' => ['event-event-items', ['jwt'], ['event.view']],
-            'WordPress only' => ['membership-register', ['api-key'], []],
-            'WordPress and club' => ['membership-file-upload-post', ['jwt', 'api-key'], ['membership.subscription.edit']],
+            'website only' => ['membership-register', ['jwt'], ['membership.registration']],
+            'event website form' => ['event-registration-register', ['jwt'], ['event.registration']],
+            'website and club' => ['membership-file-upload-post', ['jwt'], ['membership.subscription.edit', 'membership.registration']],
             'public' => ['hello-asso-webhooks-handle', ['public'], []],
         ];
     }

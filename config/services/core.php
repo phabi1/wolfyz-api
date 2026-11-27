@@ -130,11 +130,6 @@ return
             'class' => \App\Core\Di\Locator::class,
             'arguments' => ['security.firewall.strategy']
         ],
-        'security.firewall.strategy.api-key' => [
-            'class' => \App\Core\Security\Strategy\ApiKeyStrategy::class,
-            'arguments' => ['!security.firewall.strategies.api-key.secret'],
-            'tags' => [['name' => 'security.firewall.strategy', 'value' => 'api-key']]
-        ],
         'security.firewall.strategy.public' => [
             'class' => \App\Core\Security\Strategy\PublicStrategy::class,
             'tags' => [['name' => 'security.firewall.strategy', 'value' => 'public']]

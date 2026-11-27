@@ -11,10 +11,10 @@ use Symfony\Component\Routing\Route;
  * the permissions of the user. Declared on each route (config/routes):
  *
  * - "auth": accepted strategies, any of them (default: ["jwt"]):
- *   "jwt" (user of the club, access token of the auth server),
- *   "api-key" (trusted server: the WordPress site), "public" (anyone);
- * - "permission": with "jwt", the user needs at least one of them. Not checked
- *   for "api-key" and "public".
+ *   "jwt" (access token of the auth server: a user of the club, or the
+ *   WordPress site with a client_credentials token), "public" (anyone);
+ * - "permission": with "jwt", the caller needs at least one of them. Not
+ *   checked for "public".
  *
  * A "jwt" route without permission is denied (fail closed).
  */

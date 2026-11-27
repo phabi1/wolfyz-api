@@ -5,21 +5,21 @@ return [
         'path' => '/membership/file/upload',
         'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\FileController::class, 'upload'],
-        'auth' => ['jwt', 'api-key'],
-        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_EDIT],
+        // Club and website registration form.
+        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_EDIT, \App\Membership\Permissions::REGISTRATION],
     ],
     'membership-file-upload-delete' => [
         'path' => '/membership/file/remove',
         'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\FileController::class, 'remove'],
-        'auth' => ['jwt', 'api-key'],
-        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_EDIT],
+        // Club and website registration form.
+        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_EDIT, \App\Membership\Permissions::REGISTRATION],
     ],
     'membership-file-download-get' => [
         'path' => '/membership/file/download',
         'methods' => ['POST'],
         'controller' => [\App\Membership\Controller\FileController::class, 'download'],
-        'auth' => ['jwt', 'api-key'],
-        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_VIEW],
+        // Club and website registration form.
+        'permission' => [\App\Membership\Permissions::SUBSCRIPTION_VIEW, \App\Membership\Permissions::REGISTRATION],
     ],
 ];
