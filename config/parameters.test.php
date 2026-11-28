@@ -33,6 +33,12 @@ return [
             ],
         ],
     ],
+    'file' => [
+        'server' => 'https://files.test',
+        'bucket' => 'api',
+        'key_id' => 'FKTESTAPI',
+        'secret' => 'test-secret-test-secret',
+    ],
     'site_contact_url' => getenv('SITE_CONTACT_URL'),
     'site_membership_request_edit_url' => getenv('SITE_MEMBERSHIP_REQUEST_EDIT_URL'),
     'site_membership_request_payment_url' => getenv('SITE_MEMBERSHIP_REQUEST_PAYMENT_URL'),

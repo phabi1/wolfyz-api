@@ -41,7 +41,12 @@ return [
 
     ],
     'file' => [
-        'secret' => getenv('FILE_SECRET')
+        // Files service (bucket of the API, private). Access key created on
+        // the files service: bin/console key:create api --bucket=api
+        'server' => getenv('FILES_SERVER'),
+        'bucket' => getenv('FILES_BUCKET') ?: 'api',
+        'key_id' => getenv('FILES_KEY_ID'),
+        'secret' => getenv('FILES_SECRET'),
     ],
     'helloasso' => [
         'organization_slug' => getenv('HELLOASSO_ORGANIZATION_SLUG'),

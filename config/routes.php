@@ -7,7 +7,6 @@ return array_merge(
             'auth' => ['public'],
         ],
     ],
-    require __DIR__ . '/routes/file.php',
     require __DIR__ . '/routes/billing.php',
     require __DIR__ . '/routes/event.php',
     require __DIR__ . '/routes/membership.php',

@@ -4,7 +4,6 @@ namespace App\Membership\Controller;
 
 use App\Core\Mvc\Controller\ApiController;
 use App\File\Presign\PresignedUrlService;
-use App\File\Service\FileService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -23,15 +22,10 @@ class FileController extends ApiController
         }
 
         /**
-         * @var FileService
-         */
-        $fileService = $this->getService('file');
-        $path = $fileService->resolveAvailablePath('membership', (string) $payload['file']);
-
-        /**
          * @var PresignedUrlService
          */
         $presignedUrlService = $this->getService('file.presigned-url');
+        $path = $presignedUrlService->newKey('membership', (string) $payload['file']);
         $uri = $presignedUrlService->upload($path, $payload['mime_type']);
         return [
             'success' => true,

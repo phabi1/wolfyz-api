@@ -11,7 +11,7 @@ who may call it, next to its path and controller (`config/routes`):
     `wordpress`, `client_credentials` grant). The token must be signed by one
     of the issuer's keys (JWKS, cached in `cache/jwks.json`), be valid, come
     from the configured issuer and have the `api` scope;
-  - **`public`**: signed file URLs, invoice download, HelloAsso webhooks.
+  - **`public`**: invoice download, HelloAsso webhooks.
 - `permission`: with `jwt`, the caller needs at least one of these permissions
   (token's `permissions` claim: roles of the user, or of the OAuth client).
   The website forms need `membership.registration` / `event.registration`
@@ -53,6 +53,23 @@ CGI/FastCGI). In `public/.htaccess`, inside `<IfModule mod_rewrite.c>`:
 RewriteCond %{HTTP:Authorization} .
 RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 ```
+
+## Files
+
+Uploaded files (medical certificates, event registration files…) are stored
+by the **files** service, in a private bucket. The API never handles their
+content: it hands out presigned URLs (15 minutes) to the club and the website,
+which upload (`PUT`), download (`GET`) and delete (`DELETE`) the file on the
+files service directly. The key of the object
+(`membership/<random>/<name>`) is what the API stores.
+
+Parameters (`file`):
+
+| Parameter | Description |
+|-----------|-------------|
+| `server` | public URL of the files service, e.g. `https://files.example.com` |
+| `bucket` | bucket of the API (private), `api` by default |
+| `key_id`, `secret` | access key of the API on the files service (`bin/console key:create api --bucket=api` there) |
 
 ## Tests
 
