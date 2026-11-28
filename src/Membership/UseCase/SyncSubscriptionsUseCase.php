@@ -159,8 +159,8 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
             $licensePaid = $this->extractLicensePaid($data);
 
             $subscriptionData = [
-                'identity_photo' => $data['identity_photo'] ?? null,
-                'medical_certificate' => $data['medical_certificate'] ?? null,
+                'identity_photo' => $this->fileValue($existingSubscription->identity_photo ?? null, $data['identity_photo'] ?? null),
+                'medical_certificate' => $this->fileValue($existingSubscription->medical_certificate ?? null, $data['medical_certificate'] ?? null),
                 'agree_exit' => $this->extractBoolean($data['agree_exit'] ?? null),
                 'agree_image' => $this->extractBoolean($data['agree_image'] ?? null),
                 'doctor' => $data['doctor'] ?? null,
@@ -480,5 +480,22 @@ class SyncSubscriptionsUseCase implements UseCaseInterface, WatchdogAwareInterfa
             return $birthdate;
         }
         return null;
+    }
+
+    /**
+     * A file already on the files service (transferred from HelloAsso, or
+     * uploaded on the website) is kept: the export only holds the HelloAsso
+     * link, which would replace it at each sync.
+     */
+    private function fileValue(?string $current, ?string $synced): ?string
+    {
+        $current = $current === null ? '' : trim($current);
+        if ($current !== '' && !\App\Membership\HelloAsso\FileTransfer::isHelloAssoUrl($current)
+            && stripos($current, 'voir le document') === false
+        ) {
+            return $current;
+        }
+
+        return $synced;
     }
 }
