@@ -94,15 +94,32 @@ class FileTransferTest extends TestCase
         $transfer->transfer(self::URL);
     }
 
-    public function testFailsWhenTheFilesServiceRefuses(): void
+    public function testStopsWhenTheFilesServiceRefuses(): void
     {
         $transfer = $this->transfer([
             new Response(200, ['Content-Type' => 'application/pdf'], '%PDF'),
-            new Response(403, [], '{"success":false,"error":{"code":"SignatureDoesNotMatch"}}'),
+            new Response(405, ['Content-Type' => 'text/html'], '<html><h1>Method Not Allowed</h1></html>'),
         ]);
 
-        $this->expectExceptionMessage('SignatureDoesNotMatch');
+        $this->expectException(TransferAbortedException::class);
+        $this->expectExceptionMessage('HTTP 405): Method Not Allowed');
         $transfer->transfer(self::URL);
+    }
+
+    public function testATooLargeFileOnlyFailsThisFile(): void
+    {
+        $transfer = $this->transfer([
+            new Response(200, ['Content-Type' => 'application/pdf'], '%PDF'),
+            new Response(413, [], '{"success":false,"error":{"code":"EntityTooLarge"}}'),
+        ]);
+
+        try {
+            $transfer->transfer(self::URL);
+            $this->fail('No error');
+        } catch (\RuntimeException $e) {
+            $this->assertNotInstanceOf(TransferAbortedException::class, $e);
+            $this->assertStringContainsString('EntityTooLarge', $e->getMessage());
+        }
     }
 
     public function testTheTokenIsRequestedOnce(): void

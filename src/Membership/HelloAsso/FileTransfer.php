@@ -76,12 +76,20 @@ class FileTransfer
             'headers' => ['Content-Type' => $contentType],
             'http_errors' => false,
         ]);
-        if ($upload->getStatusCode() !== 200) {
-            throw new \RuntimeException(sprintf(
+        $status = $upload->getStatusCode();
+        if ($status !== 200) {
+            $message = sprintf(
                 'The files service refused the upload (HTTP %d): %s',
-                $upload->getStatusCode(),
-                substr((string) $upload->getBody(), 0, 300),
-            ));
+                $status,
+                substr(trim(strip_tags((string) $upload->getBody())), 0, 300),
+            );
+            // Too large, invalid key: this file only. Anything else (not
+            // reachable, PUT refused by the web server, signature, ...) would
+            // fail for every file, after downloading it from HelloAsso
+            if ($status === 400 || $status === 413) {
+                throw new \RuntimeException($message);
+            }
+            throw new TransferAbortedException($message);
         }
 
         return $key;
