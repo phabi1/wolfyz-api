@@ -36,6 +36,10 @@ class ConsoleKernel extends Base
             }
         }
 
+        if ($serviceId === null) {
+            throw new \RuntimeException('Unknown command: ' . $commandName . ' (bin/console help lists the commands)');
+        }
+
         $command = $container->get($serviceId);
         if ($command === null) {
             throw new \RuntimeException("Command not found: " . $commandName);

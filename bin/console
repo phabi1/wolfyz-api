@@ -15,4 +15,11 @@ define('APP_DIR', __DIR__ . '/..');
 define('CONFIG_DIR', APP_DIR . '/config');
 define('CACHE_DIR', APP_DIR . '/cache');
 
-(new ConsoleKernel())->run();
+try {
+    (new ConsoleKernel())->run();
+} catch (\Throwable $e) {
+    // Shared hosting CLIs often run with display_errors off: an uncaught
+    // error would exit without a word
+    fwrite(STDERR, sprintf('[APP_ENV=%s] %s: %s in %s:%d', APP_ENV, get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()) . PHP_EOL);
+    exit(1);
+}
