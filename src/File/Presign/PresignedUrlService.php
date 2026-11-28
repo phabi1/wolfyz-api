@@ -2,84 +2,76 @@
 
 namespace App\File\Presign;
 
+/**
+ * Presigned URLs of the files service (bucket of the API, private). The
+ * browser uploads, downloads and deletes the files there directly:
+ *
+ * - PUT <url>    body: the file, Content-Type: the given MIME type
+ *                → {"success": true, "uri": "<file>"}
+ * - GET <url>    the file
+ * - DELETE <url> → {"success": true, "deleted": bool}
+ *
+ * <file> (the key of the object) is what the API stores, e.g.
+ * "membership/3f9c0a6b1d2e/certificat.pdf".
+ */
 class PresignedUrlService
 {
-    private $baseUrl;
-    private $secret;
-
-    public function __construct(string $baseUrl, string $secret)
-    {
-        $this->secret = $secret;
-        $this->baseUrl = $baseUrl;
+    public function __construct(
+        private string $server,
+        private string $bucket,
+        private string $keyId,
+        private string $secret,
+    ) {
     }
 
     public function upload(string $file, string $mimeType, int $expiresIn = 900): string
     {
-        $query = $this->sign([
-            'file' => $file,
-            'mime_type' => $mimeType,
-        ], $expiresIn);
-        return $this->baseUrl . '/file/upload' . '?' . $query;
+        return $this->presign('PUT', $file, ['content-type' => $mimeType], $expiresIn);
     }
 
     public function remove(string $file, int $expiresIn = 900): string
     {
-        $query = $this->sign([
-            'file' => $file,
-        ], $expiresIn);
-        return $this->baseUrl . '/file/remove' . '?' . $query;
+        return $this->presign('DELETE', $file, [], $expiresIn);
     }
 
     public function download(string $file, int $expiresIn = 900): string
     {
-        $query = $this->sign([
-            'file' => $file,
-        ], $expiresIn);
-        return $this->baseUrl . '/file/download' . '?' . $query;
+        return $this->presign('GET', $file, [], $expiresIn);
     }
 
-    public function verify(array &$payload, string $signature): PresignedResult
+    /**
+     * New file key in the directory: "<directory>/<random>/<file name>". The
+     * random part keeps uploads of the same name apart.
+     */
+    public function newKey(string $directory, string $originalFilename): string
     {
-        $now = time();
-        if (!isset($payload['expires'])) {
-            return new PresignedResult(false, PresignedResult::ERROR_EXPIRED);
+        $name = basename(str_replace('\\', '/', $originalFilename));
+        $name = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $name) ?? '');
+        if ($name === '' || $name === '.' || $name === '..') {
+            $name = 'file';
         }
-        $expires = (int) $payload['expires'];
-        if ($now > $expires) {
-            return new PresignedResult(false, PresignedResult::ERROR_EXPIRED);
+        if (strlen($name) > 200) {
+            $extension = pathinfo($name, PATHINFO_EXTENSION);
+            $name = mb_strcut($name, 0, 190, 'UTF-8') . ($extension !== '' ? '.' . mb_strcut($extension, 0, 9, 'UTF-8') : '');
         }
-        $expectedSignature = $this->hash($payload);
-        if (!hash_equals($expectedSignature, $signature)) {
-            return new PresignedResult(false, PresignedResult::ERROR_INVALID_SIGNATURE);
-        }
-        return new PresignedResult(true);
+
+        return trim($directory, '/') . '/' . bin2hex(random_bytes(6)) . '/' . $name;
     }
 
-    private function sign(array $payload, int $expiresIn = 900): string
+    private function presign(string $method, string $file, array $query, int $expiresIn): string
     {
+        $file = ltrim($file, '/');
+        if ($file === '') {
+            throw new \InvalidArgumentException('The file is empty');
+        }
+
+        $path = '/' . $this->bucket . '/' . $file;
         $expires = time() + $expiresIn;
 
-        $payload['expires'] = $expires;
+        $query[Signer::KEY] = $this->keyId;
+        $query[Signer::EXPIRES] = $expires;
+        $query[Signer::SIGNATURE] = Signer::sign($this->secret, $method, $path, $query, $this->keyId, $expires);
 
-
-        $signature = $this->hash($payload);
-
-        $payload['signature'] = $signature;
-
-        return http_build_query($payload);
+        return rtrim($this->server, '/') . Signer::canonicalPath($path) . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
-
-    private function hash(array $payload)
-    {
-        $keys = array_keys($payload);
-        sort($keys);
-
-        $sortedPayload = [];
-        foreach ($keys as $key) {
-            $sortedPayload[$key] = $payload[$key];
-        }
-        return hash_hmac('sha256', implode(':', $sortedPayload), $this->secret);
-    }
-
-
 }

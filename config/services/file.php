@@ -1,11 +1,9 @@
 <?php
 
 return [
-    'file' => [
-        'class' => \App\File\Service\FileService::class
-    ],
+    // Presigned URLs of the files service (config: file.*)
     'file.presigned-url' => [
         'class' => \App\File\Presign\PresignedUrlService::class,
-        'arguments' => ['!base_url', '!file.secret']
+        'arguments' => ['!file.server', '!file.bucket', '!file.key_id', '!file.secret']
     ]
 ];

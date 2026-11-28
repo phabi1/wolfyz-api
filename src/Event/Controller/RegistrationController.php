@@ -4,7 +4,6 @@ namespace App\Event\Controller;
 
 use App\Core\Mvc\Controller\ApiController;
 use App\File\Presign\PresignedUrlService;
-use App\File\Service\FileService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -139,16 +138,10 @@ class RegistrationController extends ApiController
         }
 
         /**
-         * @var FileService
-         */
-        $fileService = $this->getService('file');
-
-        $path = $fileService->resolveAvailablePath('event/' . $eventId, (string) $payload['file']);
-
-        /**
          * @var PresignedUrlService
          */
         $presignedUrlService = $this->getService('file.presigned-url');
+        $path = $presignedUrlService->newKey('event/' . $eventId, (string) $payload['file']);
         $uri = $presignedUrlService->upload($path, $payload['mime_type']);
         return [
             'success' => true,
