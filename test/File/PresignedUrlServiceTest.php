@@ -48,4 +48,12 @@ class PresignedUrlServiceTest extends TestCase
         $this->assertMatchesRegularExpression('#^membership/[0-9a-f]{12}/file$#', $service->newKey('membership', '..'));
         $this->assertNotSame($service->newKey('membership', 'a.pdf'), $service->newKey('membership', 'a.pdf'));
     }
+
+    public function testMissingParameterIsNamed(): void
+    {
+        $service = new PresignedUrlService('https://files.test', 'api', null, 'secret');
+
+        $this->expectExceptionMessage('file.key_id');
+        $service->download('membership/a.pdf');
+    }
 }

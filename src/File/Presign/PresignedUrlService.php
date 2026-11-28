@@ -16,11 +16,15 @@ namespace App\File\Presign;
  */
 class PresignedUrlService
 {
+    /**
+     * Parameters file.server, file.bucket, file.key_id, file.secret; checked
+     * when a URL is made, so that a missing one is named in the error.
+     */
     public function __construct(
-        private string $server,
-        private string $bucket,
-        private string $keyId,
-        private string $secret,
+        private ?string $server,
+        private ?string $bucket,
+        private ?string $keyId,
+        private ?string $secret,
     ) {
     }
 
@@ -63,6 +67,12 @@ class PresignedUrlService
         $file = ltrim($file, '/');
         if ($file === '') {
             throw new \InvalidArgumentException('The file is empty');
+        }
+
+        foreach (['server' => $this->server, 'bucket' => $this->bucket, 'key_id' => $this->keyId, 'secret' => $this->secret] as $name => $value) {
+            if ($value === null || trim($value) === '') {
+                throw new \RuntimeException(sprintf('The files service is not configured: set file.%s in the parameters', $name));
+            }
         }
 
         $path = '/' . $this->bucket . '/' . $file;
