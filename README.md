@@ -71,6 +71,24 @@ Parameters (`file`):
 | `bucket` | bucket of the API (private), `api` by default |
 | `key_id`, `secret` | access key of the API on the files service (`bin/console key:create api --bucket=api` there) |
 
+### Files stored by HelloAsso
+
+The sync of the HelloAsso export stores links to HelloAsso
+(`https://docs.helloasso.com/customFieldsAnswer/<id>`) in the file fields of
+the subscriptions (`medical_certificate`, `identity_photo`, `medical_form`).
+This command copies those files to the files service and points the
+subscriptions to the copies:
+
+```sh
+bin/console membership:transfer-helloasso-files --dry-run          # list, change nothing
+bin/console membership:transfer-helloasso-files [--campaign=<id>]
+```
+
+It downloads each link anonymously, then with the HelloAsso API token if
+refused, and can be run again (only HelloAsso links are transferred). Later
+syncs keep the transferred files instead of the HelloAsso links. Run it after
+each sync.
+
 ## Tests
 
 ```sh

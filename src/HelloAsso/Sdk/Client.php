@@ -51,6 +51,14 @@ class Client
         return $this->organizationSlug;
     }
 
+    /**
+     * Access token of the API (cached, refreshed when expired).
+     */
+    public function getAccessToken(): string
+    {
+        return $this->auth->getAccessToken();
+    }
+
     public function getBaseUri()
     {
         return $this->sandbox ? 'https://api.helloasso-sandbox.com/' : 'https://api.helloasso.com/';
