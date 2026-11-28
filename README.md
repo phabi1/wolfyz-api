@@ -85,7 +85,11 @@ bin/console membership:transfer-helloasso-files [--campaign=<id>]
 ```
 
 It downloads each link anonymously, then with the HelloAsso API token if
-refused, and can be run again (only HelloAsso links are transferred). Later
+refused (token requested once), pauses `--delay` seconds between files (1 by
+default), and can be run again (only HelloAsso links are transferred). It
+stops at the first rate limit (HTTP 429) or access refused even with the
+token: HelloAsso rate limits the server's IP, which also blocks the payments
+for a while. Later
 syncs keep the transferred files instead of the HelloAsso links. Run it after
 each sync.
 

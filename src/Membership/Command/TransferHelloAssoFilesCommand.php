@@ -8,15 +8,18 @@ use App\Core\Command\Output\Color;
 use App\Core\Di\ContainerAwareInterface;
 use App\Core\Di\ContainerAwareTrait;
 use App\Membership\HelloAsso\FileTransfer;
+use App\Membership\HelloAsso\TransferAbortedException;
 
 /**
  * Copies the files of the subscriptions still stored by HelloAsso (links
  * set by the sync of the HelloAsso export) to the files service, and points
  * the subscriptions to the copies.
  *
- *   bin/console membership:transfer-helloasso-files [--campaign=<id>] [--dry-run]
+ *   bin/console membership:transfer-helloasso-files [--campaign=<id>] [--dry-run] [--delay=<seconds>]
  *
- * Safe to run again: only HelloAsso links are transferred.
+ * Safe to run again: only HelloAsso links are transferred. Stops at the
+ * first error every other file would hit too (rate limit, access refused),
+ * to stay under the rate limits of HelloAsso.
  */
 class TransferHelloAssoFilesCommand implements CommandInterface, ContainerAwareInterface
 {
@@ -35,12 +38,22 @@ class TransferHelloAssoFilesCommand implements CommandInterface, ContainerAwareI
             return 1;
         }
 
+        $delay = $input->options->get('delay') ?? '1';
+        if (!is_numeric($delay) || (float) $delay < 0) {
+            echo Color::apply('--delay takes a number of seconds', 'red') . PHP_EOL;
+
+            return 1;
+        }
+        $delay = (int) round((float) $delay * 1000000);
+
         $repository = $this->container->get('entity.manager')->getRepository('wolf-memberships.subscription');
         $transfer = $this->fileTransfer();
 
         $filters = $campaignId !== null ? ['campaign_id' => ['eq' => (int) $campaignId]] : [];
         $counts = ['transferred' => 0, 'failed' => 0, 'not_a_link' => 0];
         $offset = 0;
+        $aborted = null;
+        $first = true;
 
         do {
             $subscriptions = $repository->find($filters, [
@@ -73,10 +86,19 @@ class TransferHelloAssoFilesCommand implements CommandInterface, ContainerAwareI
                         continue;
                     }
 
+                    if (!$first && $delay > 0) {
+                        usleep($delay);
+                    }
+                    $first = false;
+
                     try {
                         $changes[$field] = $transfer->transfer($value);
                         $counts['transferred']++;
                         echo sprintf('#%d %s: %s', $subscription->id, $field, $changes[$field]) . PHP_EOL;
+                    } catch (TransferAbortedException $e) {
+                        $counts['failed']++;
+                        $aborted = sprintf('#%d %s: %s', $subscription->id, $field, $e->getMessage());
+                        break;
                     } catch (\Throwable $e) {
                         $counts['failed']++;
                         echo Color::apply(sprintf('#%d %s: %s', $subscription->id, $field, $e->getMessage()), 'red') . PHP_EOL;
@@ -89,8 +111,15 @@ class TransferHelloAssoFilesCommand implements CommandInterface, ContainerAwareI
                 if ($changes !== []) {
                     $repository->update($subscription->id, $changes);
                 }
+                if ($aborted !== null) {
+                    break 2;
+                }
             }
         } while (count($subscriptions) === self::PAGE);
+
+        if ($aborted !== null) {
+            echo Color::apply('Stopped: ' . $aborted, 'red') . PHP_EOL;
+        }
 
         echo PHP_EOL . sprintf(
             '%d %s, %d failed, %d without link',
@@ -134,6 +163,7 @@ class TransferHelloAssoFilesCommand implements CommandInterface, ContainerAwareI
         return [
             'campaign' => 'Only the subscriptions of this campaign (id)',
             'dry-run' => 'List the files to transfer, change nothing',
+            'delay' => 'Pause between two files, in seconds (default 1)',
         ];
     }
 }
