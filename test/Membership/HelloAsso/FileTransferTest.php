@@ -4,10 +4,13 @@ namespace App\Test\Membership\HelloAsso;
 
 use App\File\Presign\PresignedUrlService;
 use App\Membership\HelloAsso\FileTransfer;
+use App\Membership\HelloAsso\TransferAbortedException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
@@ -99,6 +102,61 @@ class FileTransferTest extends TestCase
         ]);
 
         $this->expectExceptionMessage('SignatureDoesNotMatch');
+        $transfer->transfer(self::URL);
+    }
+
+    public function testTheTokenIsRequestedOnce(): void
+    {
+        $transfer = $this->transfer([
+            new Response(403),
+            new Response(200, ['Content-Type' => 'application/pdf'], 'one'),
+            new Response(200, [], '{"success":true}'),
+            new Response(403),
+            new Response(200, ['Content-Type' => 'application/pdf'], 'two'),
+            new Response(200, [], '{"success":true}'),
+        ]);
+
+        $transfer->transfer(self::URL);
+        $transfer->transfer(self::URL);
+
+        $this->assertSame(1, $this->tokenCalls);
+    }
+
+    public function testStopsWhenRefusedEvenWithTheToken(): void
+    {
+        $transfer = $this->transfer([new Response(403), new Response(403)]);
+
+        $this->expectException(TransferAbortedException::class);
+        $this->expectExceptionMessage('even with the API token');
+        $transfer->transfer(self::URL);
+    }
+
+    public function testStopsWhenRateLimited(): void
+    {
+        $transfer = $this->transfer([new Response(429)]);
+
+        $this->expectException(TransferAbortedException::class);
+        $this->expectExceptionMessage('HTTP 429');
+        $transfer->transfer(self::URL);
+    }
+
+    public function testStopsWhenTheTokenIsRateLimited(): void
+    {
+        $stack = HandlerStack::create(new MockHandler([new Response(403)]));
+        $transfer = new FileTransfer(
+            new Client(['handler' => $stack]),
+            new PresignedUrlService('https://files.test', 'api', 'FKTEST', 'secret'),
+            static function (): string {
+                throw new ClientException(
+                    'Too Many Requests',
+                    new Request('POST', 'https://api.helloasso.com/oauth2/token'),
+                    new Response(429, [], 'error code: 1015'),
+                );
+            },
+        );
+
+        $this->expectException(TransferAbortedException::class);
+        $this->expectExceptionMessage('HTTP 429');
         $transfer->transfer(self::URL);
     }
 

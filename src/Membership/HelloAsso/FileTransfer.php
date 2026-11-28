@@ -4,6 +4,7 @@ namespace App\Membership\HelloAsso;
 
 use App\File\Presign\PresignedUrlService;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -23,9 +24,11 @@ class FileTransfer
         'image/heif' => 'heif',
     ];
 
+    private ?string $token = null;
+
     /**
      * @param \Closure(): string $accessToken HelloAsso API token, sent when
-     *     the link refuses anonymous downloads
+     *     the link refuses anonymous downloads (fetched once)
      */
     public function __construct(
         private ClientInterface $http,
@@ -46,7 +49,9 @@ class FileTransfer
     /**
      * @return string key of the file on the files service
      *
-     * @throws \RuntimeException when HelloAsso or the files service refuses
+     * @throws TransferAbortedException when the other files would fail too
+     *     (HelloAsso rate limit, access refused even with the API token)
+     * @throws \RuntimeException when this file cannot be transferred
      */
     public function transfer(string $url, string $directory = 'membership'): string
     {
@@ -54,7 +59,7 @@ class FileTransfer
 
         $contentType = strtolower(trim(explode(';', $response->getHeaderLine('Content-Type'), 2)[0]));
         if ($contentType === 'text/html') {
-            throw new \RuntimeException('HelloAsso answered with a web page instead of the file (login needed?)');
+            throw new TransferAbortedException('HelloAsso answered with a web page instead of the file (login needed?)');
         }
         if ($contentType === '' || !preg_match('#^[a-z0-9][\w.+-]*/[\w.+-]+$#', $contentType)) {
             $contentType = 'application/octet-stream';
@@ -92,9 +97,18 @@ class FileTransfer
         ];
 
         $response = $this->http->request('GET', $url, $options);
+        self::assertNotRateLimited($response->getStatusCode());
+
         if (in_array($response->getStatusCode(), [401, 403], true)) {
-            $options['headers'] = ['Authorization' => 'Bearer ' . ($this->accessToken)()];
+            $options['headers'] = ['Authorization' => 'Bearer ' . $this->token()];
             $response = $this->http->request('GET', $url, $options);
+            self::assertNotRateLimited($response->getStatusCode());
+            if (in_array($response->getStatusCode(), [401, 403], true)) {
+                throw new TransferAbortedException(sprintf(
+                    'HelloAsso refuses the download even with the API token (HTTP %d)',
+                    $response->getStatusCode(),
+                ));
+            }
         }
 
         if ($response->getStatusCode() !== 200) {
@@ -102,6 +116,34 @@ class FileTransfer
         }
 
         return $response;
+    }
+
+    /**
+     * The API token, requested once: HelloAsso rate limits its token
+     * endpoint.
+     */
+    private function token(): string
+    {
+        if ($this->token === null) {
+            try {
+                $this->token = ($this->accessToken)();
+            } catch (\Throwable $e) {
+                $status = $e instanceof RequestException ? $e->getResponse()?->getStatusCode() : null;
+                self::assertNotRateLimited((int) $status);
+                throw new TransferAbortedException('Cannot get the HelloAsso API token: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        return $this->token;
+    }
+
+    private static function assertNotRateLimited(int $status): void
+    {
+        if ($status === 429) {
+            throw new TransferAbortedException(
+                'HelloAsso limits the requests of this server (HTTP 429): wait (up to an hour) before running again',
+            );
+        }
     }
 
     /**
